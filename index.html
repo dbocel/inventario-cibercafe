@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Inventario · Cibercafé y Papelería</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme:light;
+  --bg:#F2F5F8;--surface:#FFFFFF;--ink:#1D2330;--muted:#5E6878;--line:#D9DFE8;
+  --blue:#1F3FBF;--blue-ink:#FFFFFF;--hi:#FFE14D;--hi-ink:#3A3000;
+  --in:#0E7A4B;--in-bg:#DDF3E8;--out:#B3261E;--out-bg:#FBE3E1;--warn-bg:#FFF1BF;
+  --grid:rgba(31,63,191,.07);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#141821;--surface:#1D2330;--ink:#EEF1F6;--muted:#9AA5B8;--line:#2E3648;
+    --blue:#7F97FF;--blue-ink:#10162B;--hi:#FFE14D;--hi-ink:#3A3000;
+    --in:#5FD6A0;--in-bg:#12382A;--out:#FF8F86;--out-bg:#40191A;--warn-bg:#3D3410;
+    --grid:rgba(127,151,255,.08);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#141821;--surface:#1D2330;--ink:#EEF1F6;--muted:#9AA5B8;--line:#2E3648;
+  --blue:#7F97FF;--blue-ink:#10162B;--hi:#FFE14D;--hi-ink:#3A3000;
+  --in:#5FD6A0;--in-bg:#12382A;--out:#FF8F86;--out-bg:#40191A;--warn-bg:#3D3410;
+  --grid:rgba(127,151,255,.08);
+}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px);background-size:100% 28px;
+  padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}
+h1,h2,h3{font-family:"Bricolage Grotesque",system-ui,sans-serif;margin:0;line-height:1.1}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.wrap{max-width:1080px;margin:0 auto;padding:20px 16px 48px}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:18px}
+.brand h1{font-size:28px;font-weight:800}
+.brand h1 mark{background:var(--hi);color:var(--hi-ink);padding:0 6px;border-radius:3px}
+.brand p{margin:4px 0 0;color:var(--muted)}
+.btn{border:1.5px solid var(--ink);background:var(--surface);padding:8px 14px;border-radius:8px;font-weight:600}
+.btn.primary{background:var(--blue);border-color:var(--blue);color:var(--blue-ink)}
+.btn.small{padding:4px 10px;font-size:13px}
+nav{display:flex;gap:4px;border-bottom:2px solid var(--line);margin-bottom:20px;overflow-x:auto}
+nav button{background:none;border:0;padding:10px 16px;font-weight:600;color:var(--muted);border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap}
+nav button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--blue)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:20px}
+.stat{background:var(--surface);border:1.5px solid var(--line);border-radius:10px;padding:14px 16px}
+.stat b{display:block;font:800 30px "Bricolage Grotesque",system-ui,sans-serif}
+.stat span{color:var(--muted);font-size:13px}
+.stat.alert{background:var(--warn-bg);border-color:var(--hi)}
+.panel{background:var(--surface);border:1.5px solid var(--line);border-radius:10px;padding:16px;margin-bottom:20px}
+.panel h2{font-size:20px;margin-bottom:12px}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+input,select{background:var(--bg);border:1.5px solid var(--line);border-radius:8px;padding:8px 10px;min-width:0}
+.toolbar input{flex:1 1 200px}
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:640px}
+th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:13px;color:var(--muted);font-weight:600}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.pill{display:inline-block;padding:2px 9px;border-radius:99px;font-size:12px;font-weight:700}
+.pill.ok{background:var(--in-bg);color:var(--in)}
+.pill.low{background:var(--hi);color:var(--hi-ink)}
+.pill.zero{background:var(--out-bg);color:var(--out)}
+.pill.in{background:var(--in-bg);color:var(--in)}
+.pill.out{background:var(--out-bg);color:var(--out)}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px}
+@media(max-width:760px){.grid2{grid-template-columns:1fr}}
+.toggle{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:14px}
+.toggle button{padding:14px;border-radius:10px;border:2px solid var(--line);background:var(--bg);font-weight:800;font-size:16px}
+.toggle button[aria-pressed="true"].in{background:var(--in-bg);border-color:var(--in);color:var(--in)}
+.toggle button[aria-pressed="true"].out{background:var(--out-bg);border-color:var(--out);color:var(--out)}
+label{display:block;font-weight:600;font-size:13px;margin:10px 0 4px}
+.form input,.form select{width:100%}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.hint{color:var(--muted);font-size:13px;margin:6px 0 0;min-height:20px}
+.hint.err{color:var(--out);font-weight:600}
+.empty{color:var(--muted);padding:18px 0;text-align:center}
+.lowlist{list-style:none;margin:0;padding:0}
+.lowlist li{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+dialog{border:2px solid var(--ink);border-radius:12px;background:var(--surface);color:var(--ink);width:min(440px,92vw);padding:20px}
+dialog::backdrop{background:rgba(10,14,25,.55)}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translate(-50%,30px);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:8px;font-weight:600;opacity:0;pointer-events:none;transition:.25s;z-index:20;max-width:90vw}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+@media(prefers-reduced-motion:reduce){#toast{transition:none}}
+.stations{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+.st{border:1.5px solid var(--line);border-radius:10px;padding:12px;background:var(--bg)}
+.st.busy{border-color:var(--blue);background:var(--surface);box-shadow:inset 4px 0 0 var(--blue)}
+.sth{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.clock{font:800 26px "Bricolage Grotesque",system-ui,sans-serif;font-variant-numeric:tabular-nums}
+.clock.idle{color:var(--muted)}
+.stbtn{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.rates{display:flex;flex-wrap:wrap;gap:14px;align-items:end;margin-bottom:8px}
+.rates input,.rates select{width:150px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <h1>Inventario <mark>Cibercafé y Papelería</mark></h1>
+      <p>Control de entradas y salidas de insumos, útiles y artículos de venta.</p>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn" id="btnTheme" type="button">Modo oscuro</button>
+      <button class="btn primary" id="btnNew" type="button">Nuevo producto</button>
+    </div>
+  </header>
+
+  <nav role="tablist" aria-label="Secciones">
+    <button role="tab" aria-selected="true" data-tab="resumen">Resumen</button>
+    <button role="tab" aria-selected="false" data-tab="inventario">Inventario</button>
+    <button role="tab" aria-selected="false" data-tab="movimientos">Registrar movimiento</button>
+    <button role="tab" aria-selected="false" data-tab="cibercafe">Cibercafé</button>
+    <button role="tab" aria-selected="false" data-tab="historial">Historial</button>
+  </nav>
+
+  <!-- Resumen -->
+  <section id="tab-resumen">
+    <div class="stats" id="stats"></div>
+    <div class="grid2">
+      <div class="panel"><h2>Por reponer</h2><ul class="lowlist" id="lowList"></ul></div>
+      <div class="panel"><h2>Últimos movimientos</h2><div class="tablewrap"><table style="min-width:360px"><tbody id="recent"></tbody></table></div></div>
+    </div>
+  </section>
+
+  <!-- Inventario -->
+  <section id="tab-inventario" hidden>
+    <div class="panel">
+      <div class="toolbar">
+        <input id="q" type="search" placeholder="Buscar producto o código" aria-label="Buscar producto">
+        <select id="fcat" aria-label="Filtrar por categoría"></select>
+        <select id="fstate" aria-label="Filtrar por estado">
+          <option value="">Todos los estados</option>
+          <option value="low">Stock bajo</option>
+          <option value="zero">Agotados</option>
+        </select>
+      </div>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Código</th><th>Producto</th><th>Categoría</th><th class="num">Stock</th><th class="num">Mínimo</th><th class="num">Precio</th><th>Estado</th><th></th></tr></thead>
+          <tbody id="invBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Movimientos -->
+  <section id="tab-movimientos" hidden>
+    <div class="grid2">
+      <div class="panel form">
+        <h2>Registrar movimiento</h2>
+        <div class="toggle" role="group" aria-label="Tipo de movimiento">
+          <button type="button" class="in" id="tIn" aria-pressed="true">Entrada</button>
+          <button type="button" class="out" id="tOut" aria-pressed="false">Salida</button>
+        </div>
+        <label for="mProd">Producto</label>
+        <select id="mProd"></select>
+        <div class="hint" id="mStock"></div>
+        <div class="row2">
+          <div><label for="mQty">Cantidad</label><input id="mQty" type="number" min="1" step="1" value="1"></div>
+          <div><label for="mReason">Motivo</label><select id="mReason"></select></div>
+        </div>
+        <label for="mRef">Referencia (opcional)</label>
+        <input id="mRef" type="text" placeholder="Factura, ticket o nota">
+        <div class="hint" id="mMsg" aria-live="polite"></div>
+        <div style="margin-top:12px"><button class="btn primary" id="mSave" type="button">Guardar entrada</button></div>
+      </div>
+      <div class="panel">
+        <h2>Venta rápida</h2>
+        <p class="hint" style="margin-top:0">Toque un producto para registrar una salida por venta de 1 unidad.</p>
+        <div id="quick" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Cibercafé -->
+  <section id="tab-cibercafe" hidden>
+    <div class="panel">
+      <h2>Equipos</h2>
+      <div class="rates">
+        <div><label for="cRate">Tarifa por hora (Q)</label><input id="cRate" type="number" min="0" step="0.5" value="6"></div>
+        <div><label for="cBlock">Cobro por bloques de</label><select id="cBlock"><option value="1">1 minuto</option><option value="15" selected>15 minutos</option><option value="30">30 minutos</option></select></div>
+      </div>
+      <p class="hint" id="cafeInfo"></p>
+      <div class="stations" id="stations"></div>
+    </div>
+    <div class="panel">
+      <h2>Sesiones de hoy</h2>
+      <div class="tablewrap">
+        <table style="min-width:480px">
+          <thead><tr><th>Hora</th><th>Equipo</th><th class="num">Tiempo</th><th class="num">Hojas impresas</th><th class="num">Total</th></tr></thead>
+          <tbody id="sBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Historial -->
+  <section id="tab-historial" hidden>
+    <div class="panel">
+      <div class="toolbar">
+        <select id="hType" aria-label="Filtrar por tipo">
+          <option value="">Entradas y salidas</option>
+          <option value="in">Solo entradas</option>
+          <option value="out">Solo salidas</option>
+        </select>
+        <input id="hQ" type="search" placeholder="Buscar en el historial" aria-label="Buscar en el historial">
+        <button class="btn" id="btnCsv" type="button">Descargar CSV</button>
+      </div>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Fecha</th><th>Tipo</th><th>Producto</th><th class="num">Cantidad</th><th>Motivo</th><th>Referencia</th></tr></thead>
+          <tbody id="hBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</div>
+
+<dialog id="dlg">
+  <form method="dialog" class="form" id="pForm">
+    <h2 style="margin-bottom:6px">Nuevo producto</h2>
+    <label for="pName">Nombre</label><input id="pName" required>
+    <div class="row2">
+      <div><label for="pCat">Categoría</label><select id="pCat"></select></div>
+      <div><label for="pCode">Código</label><input id="pCode" placeholder="Automático"></div>
+    </div>
+    <div class="row2">
+      <div><label for="pStock">Stock inicial</label><input id="pStock" type="number" min="0" value="0"></div>
+      <div><label for="pMin">Stock mínimo</label><input id="pMin" type="number" min="0" value="5"></div>
+    </div>
+    <label for="pPrice">Precio de venta (Q)</label><input id="pPrice" type="number" min="0" step="0.25" value="0">
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+      <button class="btn" type="button" id="pCancel">Cancelar</button>
+      <button class="btn primary" type="submit">Guardar producto</button>
+    </div>
+  </form>
+</dialog>
+<dialog id="cdlg">
+  <form method="dialog" class="form" id="cForm">
+    <h2 id="cTitle" style="margin-bottom:6px"></h2>
+    <p class="hint" id="cTime" style="margin:0"></p>
+    <label for="cPages">Hojas impresas (Q0.50 cada una)</label>
+    <input id="cPages" type="number" min="0" step="1" value="0">
+    <div class="stat" style="margin-top:14px"><b id="cTotal"></b><span>Total a cobrar</span></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+      <button class="btn" type="button" id="cCancel">Cancelar</button>
+      <button class="btn primary" type="submit">Cobrar y terminar</button>
+    </div>
+  </form>
+</dialog>
+<div id="toast" role="status"></div>
+
+<script>
+(function(){
+  var CATS=["Papelería","Útiles escolares","Impresión y copias","Insumos del cibercafé","Accesorios y tecnología"];
+  var REASONS={
+    in:["Compra a proveedor","Devolución de cliente","Ajuste de inventario"],
+    out:["Venta","Uso en el cibercafé","Merma o daño","Ajuste de inventario"]
+  };
+  var products=[
+    {id:"P001",name:"Resma de papel carta 500 hojas",cat:CATS[2],stock:18,min:6,price:48},
+    {id:"P002",name:"Resma de papel oficio 500 hojas",cat:CATS[2],stock:4,min:5,price:58},
+    {id:"P003",name:"Tinta negra para impresora",cat:CATS[3],stock:3,min:4,price:75},
+    {id:"P004",name:"Tinta de color (juego de 3)",cat:CATS[3],stock:0,min:2,price:190},
+    {id:"P005",name:"Cuaderno universitario 100 hojas",cat:CATS[1],stock:32,min:10,price:12},
+    {id:"P006",name:"Lapicero azul",cat:CATS[0],stock:120,min:40,price:2.5},
+    {id:"P007",name:"Lápiz de grafito HB",cat:CATS[0],stock:85,min:30,price:1.5},
+    {id:"P008",name:"Marcador permanente negro",cat:CATS[0],stock:14,min:8,price:6},
+    {id:"P009",name:"Pegamento en barra",cat:CATS[1],stock:9,min:10,price:7},
+    {id:"P010",name:"Tijeras escolares",cat:CATS[1],stock:11,min:5,price:10},
+    {id:"P011",name:"Memoria USB 32 GB",cat:CATS[4],stock:7,min:4,price:65},
+    {id:"P012",name:"Audífonos con micrófono",cat:CATS[4],stock:5,min:3,price:55},
+    {id:"P013",name:"Folder manila carta",cat:CATS[0],stock:60,min:25,price:1.25},
+    {id:"P014",name:"Hojas de papel bond (paquete 100)",cat:CATS[2],stock:2,min:6,price:20}
+  ];
+  var moves=[];
+  var now=Date.now();
+  function seed(pid,type,qty,reason,ref,hoursAgo){
+    moves.push({t:now-hoursAgo*3600000,pid:pid,type:type,qty:qty,reason:reason,ref:ref});
+  }
+  seed("P001","in",12,"Compra a proveedor","Fact. 0451",52);
+  seed("P006","out",10,"Venta","Ticket 218",30);
+  seed("P003","out",1,"Uso en el cibercafé","",21);
+  seed("P005","in",20,"Compra a proveedor","Fact. 0452",9);
+  seed("P002","out",3,"Venta","Ticket 233",4);
+  seed("P011","out",1,"Venta","Ticket 240",1);
+  moves.sort(function(a,b){return b.t-a.t});
+
+  var $=function(s){return document.querySelector(s)};
+  var $$=function(s){return Array.prototype.slice.call(document.querySelectorAll(s))};
+  var type="in";
+  function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+  function q(n){return "Q"+Number(n).toFixed(2)}
+  function find(id){return products.filter(function(p){return p.id===id})[0]}
+  function state(p){return p.stock===0?"zero":(p.stock<=p.min?"low":"ok")}
+  function pill(p){var s=state(p);return '<span class="pill '+s+'">'+({ok:"Disponible",low:"Stock bajo",zero:"Agotado"})[s]+'</span>'}
+  function fdate(t){return new Date(t).toLocaleString("es-GT",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"})}
+  var tt;
+  function toast(m){var el=$("#toast");el.textContent=m;el.classList.add("show");clearTimeout(tt);tt=setTimeout(function(){el.classList.remove("show")},2400)}
+
+  /* Tabs */
+  function showTab(name){
+    $$("nav button").forEach(function(b){b.setAttribute("aria-selected",String(b.dataset.tab===name))});
+    ["resumen","inventario","movimientos","cibercafe","historial"].forEach(function(n){$("#tab-"+n).hidden=(n!==name)});
+    if(location.hash!=="#"+name){try{history.replaceState(null,"","#"+name)}catch(e){}}
+  }
+  $$("nav button").forEach(function(b){b.addEventListener("click",function(){showTab(b.dataset.tab)})});
+
+  /* Resumen */
+  function renderResumen(){
+    var units=products.reduce(function(a,p){return a+p.stock},0);
+    var value=products.reduce(function(a,p){return a+p.stock*p.price},0);
+    var low=products.filter(function(p){return state(p)!=="ok"});
+    var today=new Date().toDateString();
+    var tm=moves.filter(function(m){return new Date(m.t).toDateString()===today}).length;
+    $("#stats").innerHTML=
+      '<div class="stat"><b>'+products.length+'</b><span>Productos registrados</span></div>'+
+      '<div class="stat"><b>'+units+'</b><span>Unidades en existencia</span></div>'+
+      '<div class="stat"><b>'+q(value)+'</b><span>Valor a precio de venta</span></div>'+
+      '<div class="stat '+(low.length?'alert':'')+'"><b>'+low.length+'</b><span>Productos por reponer</span></div>'+
+      '<div class="stat"><b>'+q(cafeToday())+'</b><span>Ingresos del cibercafé hoy</span></div>';
+    $("#lowList").innerHTML=low.length?low.map(function(p){
+      return '<li><span>'+esc(p.name)+'<br><small style="color:var(--muted)">Quedan '+p.stock+' · mínimo '+p.min+'</small></span>'+
+        '<button class="btn small" data-restock="'+p.id+'" type="button">Registrar entrada</button></li>'}).join(""):
+      '<li class="empty">Todo el inventario está sobre el mínimo.</li>';
+    $("#recent").innerHTML=moves.slice(0,6).map(function(m){
+      var p=find(m.pid);
+      return '<tr><td><span class="pill '+m.type+'">'+(m.type==="in"?"Entrada":"Salida")+'</span></td><td>'+esc(p?p.name:m.pid)+'</td><td class="num">'+(m.type==="in"?"+":"−")+m.qty+'</td></tr>'}).join("")||
+      '<tr><td class="empty">Aún no hay movimientos.</td></tr>';
+    $$("[data-restock]").forEach(function(b){b.addEventListener("click",function(){
+      showTab("movimientos");setType("in");$("#mProd").value=b.dataset.restock;updateStock();$("#mQty").focus()})});
+  }
+
+  /* Inventario */
+  function renderInv(){
+    var t=$("#q").value.toLowerCase().trim(),c=$("#fcat").value,s=$("#fstate").value;
+    var list=products.filter(function(p){
+      if(c&&p.cat!==c)return false;
+      if(s==="low"&&state(p)!=="low")return false;
+      if(s==="zero"&&state(p)!=="zero")return false;
+      return !t||p.name.toLowerCase().indexOf(t)>-1||p.id.toLowerCase().indexOf(t)>-1;
+    });
+    $("#invBody").innerHTML=list.length?list.map(function(p){
+      return '<tr><td>'+esc(p.id)+'</td><td>'+esc(p.name)+'</td><td>'+esc(p.cat)+'</td><td class="num"><b>'+p.stock+'</b></td><td class="num">'+p.min+'</td><td class="num">'+q(p.price)+'</td><td>'+pill(p)+'</td>'+
+        '<td><button class="btn small" data-mv="'+p.id+'" type="button">Mover</button></td></tr>'}).join(""):
+      '<tr><td colspan="8" class="empty">Ningún producto coincide con la búsqueda.</td></tr>';
+    $$("[data-mv]").forEach(function(b){b.addEventListener("click",function(){
+      showTab("movimientos");$("#mProd").value=b.dataset.mv;updateStock();$("#mQty").focus()})});
+  }
+  $("#fcat").innerHTML='<option value="">Todas las categorías</option>'+CATS.map(function(c){return '<option>'+c+'</option>'}).join("");
+  ["#q","#fcat","#fstate"].forEach(function(s){$(s).addEventListener("input",renderInv)});
+
+  /* Movimientos */
+  function fillProducts(){
+    var cur=$("#mProd").value;
+    $("#mProd").innerHTML=products.map(function(p){return '<option value="'+p.id+'">'+esc(p.name)+'</option>'}).join("");
+    if(cur&&find(cur))$("#mProd").value=cur;
+    updateStock();
+  }
+  function updateStock(){
+    var p=find($("#mProd").value);
+    $("#mStock").textContent=p?"Existencia actual: "+p.stock+" unidades":"";
+  }
+  function setType(t){
+    type=t;
+    $("#tIn").setAttribute("aria-pressed",String(t==="in"));
+    $("#tOut").setAttribute("aria-pressed",String(t==="out"));
+    $("#mReason").innerHTML=REASONS[t].map(function(r){return '<option>'+r+'</option>'}).join("");
+    $("#mSave").textContent=t==="in"?"Guardar entrada":"Guardar salida";
+    $("#mMsg").textContent="";$("#mMsg").className="hint";
+  }
+  function register(pid,t,qty,reason,ref){
+    var p=find(pid);
+    if(!p)return "Elija un producto.";
+    if(!(qty>=1)||Math.floor(qty)!==qty)return "Escriba una cantidad entera mayor a cero.";
+    if(t==="out"&&qty>p.stock)return "Solo hay "+p.stock+" unidades de "+p.name+". Reduzca la cantidad.";
+    p.stock+=(t==="in"?qty:-qty);
+    moves.unshift({t:Date.now(),pid:pid,type:t,qty:qty,reason:reason,ref:ref});
+    return "";
+  }
+  $("#tIn").addEventListener("click",function(){setType("in")});
+  $("#tOut").addEventListener("click",function(){setType("out")});
+  $("#mProd").addEventListener("change",updateStock);
+  $("#mSave").addEventListener("click",function(){
+    var err=register($("#mProd").value,type,parseInt($("#mQty").value,10),$("#mReason").value,$("#mRef").value.trim());
+    var m=$("#mMsg");
+    if(err){m.textContent=err;m.className="hint err";return}
+    toast((type==="in"?"Entrada":"Salida")+" guardada");
+    $("#mQty").value=1;$("#mRef").value="";m.textContent="";m.className="hint";
+    refresh();
+  });
+  function renderQuick(){
+    var sellers=products.filter(function(p){return p.price<=100&&p.stock>0}).slice(0,10);
+    $("#quick").innerHTML=sellers.map(function(p){
+      return '<button class="btn small" data-sell="'+p.id+'" type="button">'+esc(p.name.split(" ").slice(0,3).join(" "))+' · '+q(p.price)+'</button>'}).join("");
+    $$("[data-sell]").forEach(function(b){b.addEventListener("click",function(){
+      var err=register(b.dataset.sell,"out",1,"Venta","Venta rápida");
+      toast(err||"Venta registrada: "+find(b.dataset.sell).name);refresh()})});
+  }
+
+  /* Historial */
+  function renderHist(){
+    var ty=$("#hType").value,t=$("#hQ").value.toLowerCase().trim();
+    var list=moves.filter(function(m){
+      if(ty&&m.type!==ty)return false;
+      var p=find(m.pid);var txt=((p?p.name:"")+" "+m.reason+" "+m.ref).toLowerCase();
+      return !t||txt.indexOf(t)>-1;
+    });
+    $("#hBody").innerHTML=list.length?list.map(function(m){
+      var p=find(m.pid);
+      return '<tr><td>'+fdate(m.t)+'</td><td><span class="pill '+m.type+'">'+(m.type==="in"?"Entrada":"Salida")+'</span></td><td>'+esc(p?p.name:m.pid)+'</td><td class="num">'+(m.type==="in"?"+":"−")+m.qty+'</td><td>'+esc(m.reason)+'</td><td>'+esc(m.ref||"—")+'</td></tr>'}).join(""):
+      '<tr><td colspan="6" class="empty">No hay movimientos con ese filtro.</td></tr>';
+  }
+  ["#hType","#hQ"].forEach(function(s){$(s).addEventListener("input",renderHist)});
+  $("#btnCsv").addEventListener("click",function(){
+    var rows=[["Fecha","Tipo","Producto","Cantidad","Motivo","Referencia"]].concat(moves.map(function(m){
+      var p=find(m.pid);return [new Date(m.t).toISOString(),m.type==="in"?"Entrada":"Salida",p?p.name:m.pid,m.qty,m.reason,m.ref]}));
+    var csv=rows.map(function(r){return r.map(function(c){return '"'+String(c).replace(/"/g,'""')+'"'}).join(",")}).join("\n");
+    try{
+      var a=document.createElement("a");
+      a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download="movimientos.csv";a.click();
+    }catch(e){}
+    toast("Si no se descargó, este entorno bloquea descargas; en el sistema real sí funcionará");
+  });
+
+  /* Nuevo producto */
+  var dlg=$("#dlg");
+  $("#pCat").innerHTML=CATS.map(function(c){return '<option>'+c+'</option>'}).join("");
+  $("#btnNew").addEventListener("click",function(){$("#pForm").reset();dlg.showModal();$("#pName").focus()});
+  $("#pCancel").addEventListener("click",function(){dlg.close()});
+  $("#pForm").addEventListener("submit",function(e){
+    e.preventDefault();
+    var id=$("#pCode").value.trim()||("P"+String(products.length+1).padStart(3,"0"));
+    if(find(id)){toast("Ese código ya existe. Use otro.");return}
+    var stock=parseInt($("#pStock").value,10)||0;
+    products.push({id:id,name:$("#pName").value.trim(),cat:$("#pCat").value,stock:stock,min:parseInt($("#pMin").value,10)||0,price:parseFloat($("#pPrice").value)||0});
+    if(stock>0)moves.unshift({t:Date.now(),pid:id,type:"in",qty:stock,reason:"Stock inicial",ref:""});
+    dlg.close();toast("Producto guardado");refresh();
+  });
+
+  /* Cibercafé */
+  var cafe={rate:6,block:15,page:0.5};
+  var stations=[];
+  for(var i=1;i<=8;i++)stations.push({n:i,start:null,offset:0});
+  stations[1].start=Date.now()-38*60000;
+  stations[4].start=Date.now()-12*60000;
+  var sessions=[
+    {t:Date.now()-5*3600000,st:3,min:45,pages:0,amount:4.5},
+    {t:Date.now()-3*3600000,st:6,min:90,pages:4,amount:11}
+  ];
+  var ending=null,endM=0;
+  function mins(s){return (Date.now()-s.start)/60000+s.offset}
+  function cost(m){return Math.ceil(Math.max(m,0.01)/cafe.block)*cafe.block/60*cafe.rate}
+  function clock(m){var t=Math.floor(m*60),h=Math.floor(t/3600),mm=Math.floor(t%3600/60),ss=t%60;
+    return [h,mm,ss].map(function(x){return String(x).padStart(2,"0")}).join(":")}
+  function cafeToday(){var d=new Date().toDateString();
+    return sessions.filter(function(s){return new Date(s.t).toDateString()===d}).reduce(function(a,s){return a+s.amount},0)}
+  function tick(){
+    stations.forEach(function(s){
+      if(!s.start)return;
+      var m=mins(s),a=document.querySelector('[data-timer="'+s.n+'"]'),b=document.querySelector('[data-cost="'+s.n+'"]');
+      if(a)a.textContent=clock(m);
+      if(b)b.textContent=q(cost(m))+" acumulado";
+    });
+  }
+  function renderCafe(){
+    var busy=stations.filter(function(s){return s.start}).length;
+    $("#cafeInfo").textContent=busy+" de "+stations.length+" equipos en uso. Se cobra por bloques de "+cafe.block+" min a Q"+cafe.rate.toFixed(2)+" la hora.";
+    $("#stations").innerHTML=stations.map(function(s){
+      return '<div class="st '+(s.start?"busy":"")+'"><div class="sth"><b>Equipo '+s.n+'</b><span class="pill '+(s.start?"low":"ok")+'">'+(s.start?"En uso":"Libre")+'</span></div>'+
+        (s.start?
+          '<div class="clock" data-timer="'+s.n+'">00:00:00</div><div class="hint" data-cost="'+s.n+'"></div>'+
+          '<div class="stbtn"><button class="btn small" data-add="'+s.n+'" type="button">+10 min (demo)</button><button class="btn small primary" data-end="'+s.n+'" type="button">Cobrar y terminar</button></div>':
+          '<div class="clock idle">—</div><div class="hint">Disponible</div><div class="stbtn"><button class="btn small primary" data-start="'+s.n+'" type="button">Iniciar sesión</button></div>')+
+        '</div>'}).join("");
+    var d=new Date().toDateString();
+    var today=sessions.filter(function(s){return new Date(s.t).toDateString()===d});
+    $("#sBody").innerHTML=today.length?today.map(function(s){
+      return '<tr><td>'+new Date(s.t).toLocaleTimeString("es-GT",{hour:"2-digit",minute:"2-digit"})+'</td><td>Equipo '+s.st+'</td><td class="num">'+s.min+' min</td><td class="num">'+s.pages+'</td><td class="num"><b>'+q(s.amount)+'</b></td></tr>'}).join(""):
+      '<tr><td colspan="5" class="empty">Aún no hay sesiones cobradas hoy.</td></tr>';
+    tick();
+  }
+  function stationOf(n){return stations[Number(n)-1]}
+  $("#stations").addEventListener("click",function(e){
+    var b=e.target.closest("button");if(!b)return;
+    if(b.dataset.start){var s=stationOf(b.dataset.start);s.start=Date.now();s.offset=0;toast("Sesión iniciada en el equipo "+s.n);refresh()}
+    else if(b.dataset.add){stationOf(b.dataset.add).offset+=10;tick()}
+    else if(b.dataset.end){
+      ending=stationOf(b.dataset.end);endM=mins(ending);
+      $("#cTitle").textContent="Terminar equipo "+ending.n;
+      $("#cTime").textContent="Tiempo de uso: "+Math.round(endM)+" min · "+q(cost(endM));
+      $("#cPages").value=0;updateTotal();$("#cdlg").showModal();$("#cPages").focus();
+    }
+  });
+  function updateTotal(){var p=Math.max(0,parseInt($("#cPages").value,10)||0);$("#cTotal").textContent=q(cost(endM)+p*cafe.page)}
+  $("#cPages").addEventListener("input",updateTotal);
+  $("#cCancel").addEventListener("click",function(){$("#cdlg").close()});
+  $("#cForm").addEventListener("submit",function(e){
+    e.preventDefault();
+    var p=Math.max(0,parseInt($("#cPages").value,10)||0),total=cost(endM)+p*cafe.page;
+    sessions.unshift({t:Date.now(),st:ending.n,min:Math.round(endM),pages:p,amount:total});
+    ending.start=null;ending.offset=0;
+    $("#cdlg").close();toast("Cobrado "+q(total)+" · equipo "+ending.n+" libre");refresh();
+  });
+  $("#cRate").addEventListener("input",function(){cafe.rate=Math.max(0,parseFloat(this.value)||0);renderCafe();renderResumen()});
+  $("#cBlock").addEventListener("change",function(){cafe.block=parseInt(this.value,10);renderCafe()});
+  setInterval(tick,1000);
+
+  /* Tema */
+  var root=document.documentElement;
+  $("#btnTheme").addEventListener("click",function(){
+    var dark=root.dataset.theme==="dark"||(!root.dataset.theme&&matchMedia("(prefers-color-scheme: dark)").matches);
+    root.dataset.theme=dark?"light":"dark";
+    $("#btnTheme").textContent=dark?"Modo oscuro":"Modo claro";
+  });
+  if(matchMedia("(prefers-color-scheme: dark)").matches)$("#btnTheme").textContent="Modo claro";
+
+  function refresh(){renderResumen();renderInv();fillProducts();renderQuick();renderHist();renderCafe()}
+  setType("in");refresh();
+  var h=location.hash.replace("#","");
+  if(["resumen","inventario","movimientos","cibercafe","historial"].indexOf(h)>-1)showTab(h);
+})();
+</script>
+</body>
+</html>
