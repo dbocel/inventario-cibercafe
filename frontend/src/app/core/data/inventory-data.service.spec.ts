@@ -161,4 +161,48 @@ describe('InventoryDataService', () => {
       ],
     ]);
   });
+
+  it('maps entrada and salida arguments exactly and never inserts movimientos directly', async () => {
+    await service.registerMovement(12, 'entrada', 3, 'Compra a proveedor', null);
+    await service.registerMovement(12, 'salida', 2, 'Merma o daño', 'Nota 4');
+    expect(queries.filter((query) => query.table === 'rpc').map((query) => query.calls)).toEqual([
+      [
+        [
+          'registrar_movimiento',
+          {
+            p_producto: 12,
+            p_tipo: 'entrada',
+            p_cantidad: 3,
+            p_motivo: 'Compra a proveedor',
+            p_ref: null,
+          },
+        ],
+      ],
+      [
+        [
+          'registrar_movimiento',
+          {
+            p_producto: 12,
+            p_tipo: 'salida',
+            p_cantidad: 2,
+            p_motivo: 'Merma o daño',
+            p_ref: 'Nota 4',
+          },
+        ],
+      ],
+    ]);
+    expect(
+      queries.some(
+        (query) =>
+          query.table === 'movimientos' && query.calls.some((call) => call[0] === 'insert'),
+      ),
+    ).toBe(false);
+  });
+
+  it('surfaces stock-insufficient RPC errors', async () => {
+    rpcResponse = { data: null, error: { message: 'Stock insuficiente' } };
+    await expect(service.registerMovement(12, 'salida', 9, 'Venta', null)).rejects.toThrow(
+      'Stock insuficiente',
+    );
+  });
 });

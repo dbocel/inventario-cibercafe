@@ -1,0 +1,61 @@
+<div class="grid2">
+  <div class="panel form">
+    <h2>Registrar movimiento</h2>
+    <div class="toggle">
+      <button
+        type="button"
+        class="in"
+        [attr.aria-pressed]="type === 'entrada'"
+        (click)="setType('entrada')"
+      >
+        Entrada</button
+      ><button
+        type="button"
+        class="out"
+        [attr.aria-pressed]="type === 'salida'"
+        (click)="setType('salida')"
+      >
+        Salida
+      </button>
+    </div>
+    <label for="mProd">Producto</label
+    ><select id="mProd" [(ngModel)]="productId">
+      <option [ngValue]="0">Seleccione producto</option>
+      @for (product of data.products; track product.id) {
+        <option [ngValue]="product.id">{{ product.nombre }}</option>
+      }
+    </select>
+    <p class="hint">{{ selected ? 'Existencia actual: ' + selected.stock + ' unidades' : '' }}</p>
+    <div class="row2">
+      <div>
+        <label for="mQty">Cantidad</label
+        ><input id="mQty" type="number" min="1" step="1" [(ngModel)]="quantity" />
+      </div>
+      <div>
+        <label for="mReason">Motivo</label
+        ><select id="mReason" [(ngModel)]="reason">
+          @for (item of reasons[type]; track item) {
+            <option>{{ item }}</option>
+          }
+        </select>
+      </div>
+    </div>
+    <label for="mRef">Referencia (opcional)</label
+    ><input id="mRef" [(ngModel)]="reference" placeholder="Factura, ticket o nota" />
+    <p class="hint" aria-live="polite">{{ message }}</p>
+    <button class="btn primary" type="button" [disabled]="saving" (click)="save()">
+      {{ saving ? 'Guardando…' : 'Guardar ' + (type === 'entrada' ? 'entrada' : 'salida') }}
+    </button>
+  </div>
+  <div class="panel">
+    <h2>Venta rápida</h2>
+    <p class="hint">Toque un producto para registrar una salida por venta de 1 unidad.</p>
+    <div class="quick">
+      @for (product of data.products.filter(isSeller); track product.id) {
+        <button class="btn small" type="button" [disabled]="saving" (click)="quickSale(product)">
+          {{ product.nombre }} · Q{{ product.precio.toFixed(2) }}
+        </button>
+      }
+    </div>
+  </div>
+</div>

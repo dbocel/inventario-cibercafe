@@ -5,13 +5,22 @@ import { InventoryDataService, AppData } from '../core/data/inventory-data.servi
 import { DashboardComponent } from '../features/dashboard/dashboard.component';
 import { InventoryComponent } from '../features/inventory/inventory.component';
 import { HistoryComponent } from '../features/history/history.component';
+import { MovementsComponent } from '../features/movements/movements.component';
+import { CybercafeComponent } from '../features/cybercafe/cybercafe.component';
 
 const TABS = ['resumen', 'inventario', 'movimientos', 'cibercafe', 'historial'] as const;
 type Tab = (typeof TABS)[number];
 
 @Component({
   selector: 'app-shell',
-  imports: [LoginComponent, DashboardComponent, InventoryComponent, HistoryComponent],
+  imports: [
+    LoginComponent,
+    DashboardComponent,
+    InventoryComponent,
+    HistoryComponent,
+    MovementsComponent,
+    CybercafeComponent,
+  ],
   templateUrl: './app-shell.component.html',
   styleUrl: './app-shell.component.css',
 })

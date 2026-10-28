@@ -210,4 +210,33 @@ export class InventoryDataService {
         (error as { message?: string }).message ?? 'No se pudo guardar el movimiento.',
       );
   }
+
+  async startSession(equipmentId: number): Promise<void> {
+    const { error } = await this.supabase.client
+      .from('sesiones')
+      .insert({ equipo_id: equipmentId });
+    if (error)
+      throw new Error(
+        `No se pudo iniciar: ${(error as { message?: string }).message ?? 'Error desconocido'}`,
+      );
+  }
+
+  async finishSession(
+    id: number,
+    values: { fin: string; minutos: number; hojas: number; total: number },
+  ): Promise<void> {
+    const { error } = await this.supabase.client.from('sesiones').update(values).eq('id', id);
+    if (error)
+      throw new Error(
+        `No se pudo cobrar: ${(error as { message?: string }).message ?? 'Error desconocido'}`,
+      );
+  }
+
+  async updateConfiguration(
+    id: number,
+    values: { tarifa_hora?: number; bloque_min?: number },
+  ): Promise<void> {
+    const { error } = await this.supabase.client.from('configuracion').update(values).eq('id', id);
+    if (error) throw new Error('No se pudo guardar la configuración.');
+  }
 }

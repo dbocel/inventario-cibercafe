@@ -85,16 +85,25 @@
     </section>
     <section id="tab-movimientos" [hidden]="activeTab() !== 'movimientos'">
       <div class="feature-slot" data-feature="movimientos">
-        <h2>Registrar movimiento</h2>
-        <p>Entradas, salidas y venta rápida.</p>
+        @if (appData(); as data) {
+          <app-movements [data]="data" (refresh)="loadData()" />
+        } @else if (dataLoading()) {
+          <p role="status">Cargando datos…</p>
+        } @else {
+          <p class="error" role="alert">{{ dataError() || 'No hay datos cargados.' }}</p>
+          <button class="btn" type="button" (click)="loadData()">Reintentar</button>
+        }
       </div>
     </section>
     <section id="tab-cibercafe" [hidden]="activeTab() !== 'cibercafe'">
       <div class="feature-slot" data-feature="cibercafe">
-        <h2>Cibercafé</h2>
-        <p>Equipos y sesiones.</p>
-        @if (auth.currentRole() === 'admin') {
-          <div class="rates" data-admin-control>Tarifas administradas por el administrador.</div>
+        @if (appData(); as data) {
+          <app-cybercafe [data]="data" (refresh)="loadData()" />
+        } @else if (dataLoading()) {
+          <p role="status">Cargando datos…</p>
+        } @else {
+          <p class="error" role="alert">{{ dataError() || 'No hay datos cargados.' }}</p>
+          <button class="btn" type="button" (click)="loadData()">Reintentar</button>
         }
       </div>
     </section>

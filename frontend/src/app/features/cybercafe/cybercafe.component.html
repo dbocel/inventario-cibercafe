@@ -1,0 +1,119 @@
+<div class="panel">
+  <h2>Equipos</h2>
+  @if (isAdmin()) {
+    <div class="rates">
+      <div>
+        <label for="cRate">Tarifa por hora (Q)</label
+        ><input
+          id="cRate"
+          type="number"
+          min="0"
+          step="0.5"
+          [(ngModel)]="rate"
+          (change)="saveRate()"
+        />
+      </div>
+      <div>
+        <label for="cBlock">Cobro por bloques de</label
+        ><select id="cBlock" [(ngModel)]="block" (change)="saveBlock()">
+          <option [ngValue]="1">1 minuto</option>
+          <option [ngValue]="15">15 minutos</option>
+          <option [ngValue]="30">30 minutos</option>
+        </select>
+      </div>
+    </div>
+  }
+  <p class="hint">
+    {{ data.equipment.filter((e) => active(e.id)).length }} de {{ data.equipment.length }} equipos
+    en uso. Se cobra por bloques de {{ block }} min a Q{{ rate.toFixed(2) }} la hora.
+  </p>
+  <div class="stations">
+    @for (equipment of data.equipment; track equipment.id) {
+      @let session = active(equipment.id);
+      <div class="station" [class.busy]="session">
+        <div class="station-head">
+          <b>{{ equipment.nombre }}</b
+          ><span class="pill">{{ session ? 'En uso' : 'Libre' }}</span>
+        </div>
+        @if (session) {
+          <div class="clock">{{ clock(session) }}</div>
+          <p class="hint">Q{{ cost(minutes(session)).toFixed(2) }} acumulado</p>
+          <div class="buttons">
+            <button type="button" class="btn small" (click)="addDemo(session)">
+              +10 min (demo)</button
+            ><button type="button" class="btn small primary" (click)="beginFinish(session)">
+              Cobrar y terminar
+            </button>
+          </div>
+        } @else {
+          <div class="clock idle">—</div>
+          <p class="hint">Disponible</p>
+          <button
+            type="button"
+            class="btn small primary"
+            [disabled]="saving"
+            (click)="start(equipment.id)"
+          >
+            Iniciar sesión
+          </button>
+        }
+      </div>
+    }
+  </div>
+  <p class="hint" aria-live="polite">{{ message }}</p>
+</div>
+<div class="panel">
+  <h2>Sesiones de hoy</h2>
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Hora</th>
+          <th>Equipo</th>
+          <th class="num">Tiempo</th>
+          <th class="num">Hojas impresas</th>
+          <th class="num">Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (session of data.sessions; track session.id) {
+          @if (isToday(session) && session.fin) {
+            <tr>
+              <td>{{ formatTime(session) }}</td>
+              <td>{{ session.equipos?.nombre || '—' }}</td>
+              <td class="num">{{ session.minutos || 0 }} min</td>
+              <td class="num">{{ session.hojas || 0 }}</td>
+              <td class="num">
+                <b>Q{{ (session.total || 0).toFixed(2) }}</b>
+              </td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+</div>
+@if (selected) {
+  <div class="overlay">
+    <div class="dialog">
+      <h2>Terminar {{ selected.equipos?.nombre || 'equipo' }}</h2>
+      <p>
+        Tiempo de uso: {{ Math.round(minutes(selected)) }} min · Q{{
+          cost(minutes(selected)).toFixed(2)
+        }}
+      </p>
+      <label for="cPages">Hojas impresas (Q{{ pageRate.toFixed(2) }} cada una)</label
+      ><input id="cPages" type="number" min="0" step="1" [(ngModel)]="pages" />
+      <div class="total">
+        <b>Q{{ total.toFixed(2) }}</b
+        ><span>Total a cobrar</span>
+      </div>
+      <div class="buttons">
+        <button class="btn" type="button" (click)="selected = null">Cancelar</button
+        ><button class="btn primary" type="button" [disabled]="saving" (click)="finish()">
+          Cobrar y terminar
+        </button>
+      </div>
+    </div>
+  </div>
+}
