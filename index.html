@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Inventario · Cibercafé y Papelería</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme:light;
+  --bg:#F2F5F8;--surface:#FFFFFF;--ink:#1D2330;--muted:#5E6878;--line:#D9DFE8;
+  --blue:#1F3FBF;--blue-ink:#FFFFFF;--hi:#FFE14D;--hi-ink:#3A3000;
+  --in:#0E7A4B;--in-bg:#DDF3E8;--out:#B3261E;--out-bg:#FBE3E1;--warn-bg:#FFF1BF;
+  --grid:rgba(31,63,191,.07);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#141821;--surface:#1D2330;--ink:#EEF1F6;--muted:#9AA5B8;--line:#2E3648;
+    --blue:#7F97FF;--blue-ink:#10162B;--hi:#FFE14D;--hi-ink:#3A3000;
+    --in:#5FD6A0;--in-bg:#12382A;--out:#FF8F86;--out-bg:#40191A;--warn-bg:#3D3410;
+    --grid:rgba(127,151,255,.08);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#141821;--surface:#1D2330;--ink:#EEF1F6;--muted:#9AA5B8;--line:#2E3648;
+  --blue:#7F97FF;--blue-ink:#10162B;--hi:#FFE14D;--hi-ink:#3A3000;
+  --in:#5FD6A0;--in-bg:#12382A;--out:#FF8F86;--out-bg:#40191A;--warn-bg:#3D3410;
+  --grid:rgba(127,151,255,.08);
+}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px);background-size:100% 28px;
+  padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}
+h1,h2,h3{font-family:"Bricolage Grotesque",system-ui,sans-serif;margin:0;line-height:1.1}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.wrap{max-width:1080px;margin:0 auto;padding:20px 16px 48px}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:18px}
+.brand h1{font-size:28px;font-weight:800}
+.brand h1 mark{background:var(--hi);color:var(--hi-ink);padding:0 6px;border-radius:3px}
+.brand p{margin:4px 0 0;color:var(--muted)}
+.btn{border:1.5px solid var(--ink);background:var(--surface);padding:8px 14px;border-radius:8px;font-weight:600}
+.btn.primary{background:var(--blue);border-color:var(--blue);color:var(--blue-ink)}
+.btn.small{padding:4px 10px;font-size:13px}
+nav{display:flex;gap:4px;border-bottom:2px solid var(--line);margin-bottom:20px;overflow-x:auto}
+nav button{background:none;border:0;padding:10px 16px;font-weight:600;color:var(--muted);border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap}
+nav button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--blue)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:20px}
+.stat{background:var(--surface);border:1.5px solid var(--line);border-radius:10px;padding:14px 16px}
+.stat b{display:block;font:800 30px "Bricolage Grotesque",system-ui,sans-serif}
+.stat span{color:var(--muted);font-size:13px}
+.stat.alert{background:var(--warn-bg);border-color:var(--hi)}
+.panel{background:var(--surface);border:1.5px solid var(--line);border-radius:10px;padding:16px;margin-bottom:20px}
+.panel h2{font-size:20px;margin-bottom:12px}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+input,select{background:var(--bg);border:1.5px solid var(--line);border-radius:8px;padding:8px 10px;min-width:0}
+.toolbar input{flex:1 1 200px}
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:640px}
+th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:13px;color:var(--muted);font-weight:600}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.pill{display:inline-block;padding:2px 9px;border-radius:99px;font-size:12px;font-weight:700}
+.pill.ok{background:var(--in-bg);color:var(--in)}
+.pill.low{background:var(--hi);color:var(--hi-ink)}
+.pill.zero{background:var(--out-bg);color:var(--out)}
+.pill.in{background:var(--in-bg);color:var(--in)}
+.pill.out{background:var(--out-bg);color:var(--out)}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px}
+@media(max-width:760px){.grid2{grid-template-columns:1fr}}
+.toggle{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:14px}
+.toggle button{padding:14px;border-radius:10px;border:2px solid var(--line);background:var(--bg);font-weight:800;font-size:16px}
+.toggle button[aria-pressed="true"].in{background:var(--in-bg);border-color:var(--in);color:var(--in)}
+.toggle button[aria-pressed="true"].out{background:var(--out-bg);border-color:var(--out);color:var(--out)}
+label{display:block;font-weight:600;font-size:13px;margin:10px 0 4px}
+.form input,.form select{width:100%}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.hint{color:var(--muted);font-size:13px;margin:6px 0 0;min-height:20px}
+.hint.err{color:var(--out);font-weight:600}
+.empty{color:var(--muted);padding:18px 0;text-align:center}
+.lowlist{list-style:none;margin:0;padding:0}
+.lowlist li{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+dialog{border:2px solid var(--ink);border-radius:12px;background:var(--surface);color:var(--ink);width:min(440px,92vw);padding:20px}
+dialog::backdrop{background:rgba(10,14,25,.55)}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translate(-50%,30px);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:8px;font-weight:600;opacity:0;pointer-events:none;transition:.25s;z-index:20;max-width:90vw}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+@media(prefers-reduced-motion:reduce){#toast{transition:none}}
+.stations{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+.st{border:1.5px solid var(--line);border-radius:10px;padding:12px;background:var(--bg)}
+.st.busy{border-color:var(--blue);background:var(--surface);box-shadow:inset 4px 0 0 var(--blue)}
+.sth{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.clock{font:800 26px "Bricolage Grotesque",system-ui,sans-serif;font-variant-numeric:tabular-nums}
+.clock.idle{color:var(--muted)}
+.stbtn{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.rates{display:flex;flex-wrap:wrap;gap:14px;align-items:end;margin-bottom:8px}
+.rates input,.rates select{width:150px}
+/* Fase 4: acceso y roles */
+#loginView{position:fixed;inset:0;background:var(--bg);z-index:30;display:flex;align-items:center;justify-content:center;padding:16px}
+#loginView .panel{width:min(380px,100%)}
+.no-admin #btnNew{display:none}
+.no-admin .rates{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <h1>Inventario <mark>Cibercafé y Papelería</mark></h1>
+      <p>Control de entradas y salidas de insumos, útiles y artículos de venta.</p>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn" id="btnOut" type="button" hidden>Cerrar sesión</button>
+      <button class="btn" id="btnTheme" type="button">Modo oscuro</button>
+      <button class="btn primary" id="btnNew" type="button">Nuevo producto</button>
+    </div>
+  </header>
+
+  <nav role="tablist" aria-label="Secciones">
+    <button role="tab" aria-selected="true" data-tab="resumen">Resumen</button>
+    <button role="tab" aria-selected="false" data-tab="inventario">Inventario</button>
+    <button role="tab" aria-selected="false" data-tab="movimientos">Registrar movimiento</button>
+    <button role="tab" aria-selected="false" data-tab="cibercafe">Cibercafé</button>
+    <button role="tab" aria-selected="false" data-tab="historial">Historial</button>
+  </nav>
+
+  <!-- Resumen -->
+  <section id="tab-resumen">
+    <div class="stats" id="stats"></div>
+    <div class="grid2">
+      <div class="panel"><h2>Por reponer</h2><ul class="lowlist" id="lowList"></ul></div>
+      <div class="panel"><h2>Últimos movimientos</h2><div class="tablewrap"><table style="min-width:360px"><tbody id="recent"></tbody></table></div></div>
+    </div>
+  </section>
+
+  <!-- Inventario -->
+  <section id="tab-inventario" hidden>
+    <div class="panel">
+      <div class="toolbar">
+        <input id="q" type="search" placeholder="Buscar producto o código" aria-label="Buscar producto">
+        <select id="fcat" aria-label="Filtrar por categoría"></select>
+        <select id="fstate" aria-label="Filtrar por estado">
+          <option value="">Todos los estados</option>
+          <option value="low">Stock bajo</option>
+          <option value="zero">Agotados</option>
+        </select>
+      </div>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Código</th><th>Producto</th><th>Categoría</th><th class="num">Stock</th><th class="num">Mínimo</th><th class="num">Precio</th><th>Estado</th><th></th></tr></thead>
+          <tbody id="invBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Movimientos -->
+  <section id="tab-movimientos" hidden>
+    <div class="grid2">
+      <div class="panel form">
+        <h2>Registrar movimiento</h2>
+        <div class="toggle" role="group" aria-label="Tipo de movimiento">
+          <button type="button" class="in" id="tIn" aria-pressed="true">Entrada</button>
+          <button type="button" class="out" id="tOut" aria-pressed="false">Salida</button>
+        </div>
+        <label for="mProd">Producto</label>
+        <select id="mProd"></select>
+        <div class="hint" id="mStock"></div>
+        <div class="row2">
+          <div><label for="mQty">Cantidad</label><input id="mQty" type="number" min="1" step="1" value="1"></div>
+          <div><label for="mReason">Motivo</label><select id="mReason"></select></div>
+        </div>
+        <label for="mRef">Referencia (opcional)</label>
+        <input id="mRef" type="text" placeholder="Factura, ticket o nota">
+        <div class="hint" id="mMsg" aria-live="polite"></div>
+        <div style="margin-top:12px"><button class="btn primary" id="mSave" type="button">Guardar entrada</button></div>
+      </div>
+      <div class="panel">
+        <h2>Venta rápida</h2>
+        <p class="hint" style="margin-top:0">Toque un producto para registrar una salida por venta de 1 unidad.</p>
+        <div id="quick" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Cibercafé -->
+  <section id="tab-cibercafe" hidden>
+    <div class="panel">
+      <h2>Equipos</h2>
+      <div class="rates">
+        <div><label for="cRate">Tarifa por hora (Q)</label><input id="cRate" type="number" min="0" step="0.5" value="6"></div>
+        <div><label for="cBlock">Cobro por bloques de</label><select id="cBlock"><option value="1">1 minuto</option><option value="15" selected>15 minutos</option><option value="30">30 minutos</option></select></div>
+      </div>
+      <p class="hint" id="cafeInfo"></p>
+      <div class="stations" id="stations"></div>
+    </div>
+    <div class="panel">
+      <h2>Sesiones de hoy</h2>
+      <div class="tablewrap">
+        <table style="min-width:480px">
+          <thead><tr><th>Hora</th><th>Equipo</th><th class="num">Tiempo</th><th class="num">Hojas impresas</th><th class="num">Total</th></tr></thead>
+          <tbody id="sBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Historial -->
+  <section id="tab-historial" hidden>
+    <div class="panel">
+      <div class="toolbar">
+        <select id="hType" aria-label="Filtrar por tipo">
+          <option value="">Entradas y salidas</option>
+          <option value="entrada">Solo entradas</option>
+          <option value="salida">Solo salidas</option>
+        </select>
+        <input id="hQ" type="search" placeholder="Buscar en el historial" aria-label="Buscar en el historial">
+        <button class="btn" id="btnCsv" type="button">Descargar CSV</button>
+      </div>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Fecha</th><th>Tipo</th><th>Producto</th><th class="num">Cantidad</th><th>Motivo</th><th>Referencia</th></tr></thead>
+          <tbody id="hBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</div>
+
+<dialog id="dlg">
+  <form method="dialog" class="form" id="pForm">
+    <h2 style="margin-bottom:6px">Nuevo producto</h2>
+    <label for="pName">Nombre</label><input id="pName" required>
+    <div class="row2">
+      <div><label for="pCat">Categoría</label><select id="pCat"></select></div>
+      <div><label for="pCode">Código</label><input id="pCode" placeholder="Automático"></div>
+    </div>
+    <div class="row2">
+      <div><label for="pStock">Stock inicial</label><input id="pStock" type="number" min="0" value="0"></div>
+      <div><label for="pMin">Stock mínimo</label><input id="pMin" type="number" min="0" value="5"></div>
+    </div>
+    <label for="pPrice">Precio de venta (Q)</label><input id="pPrice" type="number" min="0" step="0.25" value="0">
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+      <button class="btn" type="button" id="pCancel">Cancelar</button>
+      <button class="btn primary" type="submit">Guardar producto</button>
+    </div>
+  </form>
+</dialog>
+<dialog id="cdlg">
+  <form method="dialog" class="form" id="cForm">
+    <h2 id="cTitle" style="margin-bottom:6px"></h2>
+    <p class="hint" id="cTime" style="margin:0"></p>
+    <label for="cPages">Hojas impresas (Q0.50 cada una)</label>
+    <input id="cPages" type="number" min="0" step="1" value="0">
+    <div class="stat" style="margin-top:14px"><b id="cTotal"></b><span>Total a cobrar</span></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+      <button class="btn" type="button" id="cCancel">Cancelar</button>
+      <button class="btn primary" type="submit">Cobrar y terminar</button>
+    </div>
+  </form>
+</dialog>
+<div id="loginView">
+  <form class="panel form" id="loginForm">
+    <h2 style="margin-bottom:6px">Iniciar sesión</h2>
+    <p class="hint" style="margin-top:0">Sistema de inventario · Cibercafé y Papelería</p>
+    <label for="loginEmail">Correo</label>
+    <input id="loginEmail" type="email" autocomplete="username" required>
+    <label for="loginPassword">Contraseña</label>
+    <input id="loginPassword" type="password" autocomplete="current-password" required>
+    <div class="hint" id="loginMsg" aria-live="polite"></div>
+    <div style="margin-top:10px"><button class="btn primary" id="loginBtn" type="submit" style="width:100%">Entrar</button></div>
+  </form>
+</div>
+<div id="toast" role="status"></div>
+
+<script>
+  /* Diagnóstico de carga (antes del CDN): si el CDN o un script fallan, se avisa
+     en la pantalla de login en lugar de quedarse mudo. */
+  window.__diag = [];
+  window.addEventListener("error", function (ev) {
+    if (ev.message) window.__diag.push("error de script: " + ev.message + " (línea " + ev.lineno + ")");
+    else if (ev.target && ev.target.tagName === "SCRIPT") window.__diag.push("no se pudo cargar la librería desde el CDN");
+  }, true);
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
+<script>
+(function(){
+  /* Conexión con Supabase (Fase 3 del plan) */
+  var db=window.supabase.createClient(
+    "https://tvxlscokuqaztbumdgby.supabase.co",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR2eGxzY29rdXFhenRidW1kZ2J5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMxNTIyMzYsImV4cCI6MjEwODcyODIzNn0.lnvTOG7LSYvgudw5wmRFW5vPm7CvY7C95P3SmpI5-50"
+  );
+
+  var REASONS={
+    in:["Compra a proveedor","Devolución de cliente","Ajuste de inventario"],
+    out:["Venta","Uso en el cibercafé","Merma o daño","Ajuste de inventario"]
+  };
+
+  /* Estado local, copiado de la base en cada syncAll() */
+  var products=[],moves=[],sessions=[],equipos=[],CATS=[];
+  var cfg={id:1,rate:6,block:15,page:0.5};
+  var offsets={};   /* minutos extra por equipo (solo demo, no persisten) */
+  var type="in";
+  var busy=false;
+
+  var $=function(s){return document.querySelector(s)};
+  var $$=function(s){return Array.prototype.slice.call(document.querySelectorAll(s))};
+
+  function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+  function q(n){return "Q"+Number(n||0).toFixed(2)}
+  function find(id){return products.filter(function(p){return String(p.id)===String(id)})[0]}
+  function equipo(id){return equipos.filter(function(e){return String(e.id)===String(id)})[0]}
+  function state(p){return p.stock===0?"zero":(p.stock<=p.stock_minimo?"low":"ok")}
+  function pill(p){var s=state(p);return '<span class="pill '+s+'">'+({ok:"Disponible",low:"Stock bajo",zero:"Agotado"})[s]+'</span>'}
+  function fdate(t){return new Date(t).toLocaleString("es-GT",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"})}
+  function esHoy(t){return new Date(t).toDateString()===new Date().toDateString()}
+  var tt;
+  function toast(m){var el=$("#toast");el.textContent=m;el.classList.add("show");clearTimeout(tt);tt=setTimeout(function(){el.classList.remove("show")},2400)}
+
+  /* Tabs */
+  function showTab(name){
+    $$("nav button").forEach(function(b){b.setAttribute("aria-selected",String(b.dataset.tab===name))});
+    ["resumen","inventario","movimientos","cibercafe","historial"].forEach(function(n){$("#tab-"+n).hidden=(n!==name)});
+    if(location.hash!=="#"+name){try{history.replaceState(null,"","#"+name)}catch(e){}}
+  }
+  $$("nav button").forEach(function(b){b.addEventListener("click",function(){showTab(b.dataset.tab)})});
+
+  /* Resumen */
+  function renderResumen(){
+    var units=products.reduce(function(a,p){return a+(p.stock||0)},0);
+    var value=products.reduce(function(a,p){return a+(p.stock||0)*(Number(p.precio)||0)},0);
+    var low=products.filter(function(p){return state(p)!=="ok"});
+    $("#stats").innerHTML=
+      '<div class="stat"><b>'+products.length+'</b><span>Productos registrados</span></div>'+
+      '<div class="stat"><b>'+units+'</b><span>Unidades en existencia</span></div>'+
+      '<div class="stat"><b>'+q(value)+'</b><span>Valor a precio de venta</span></div>'+
+      '<div class="stat '+(low.length?'alert':'')+'"><b>'+low.length+'</b><span>Productos por reponer</span></div>'+
+      '<div class="stat"><b>'+q(cafeToday())+'</b><span>Ingresos del cibercafé hoy</span></div>';
+    $("#lowList").innerHTML=low.length?low.map(function(p){
+      return '<li><span>'+esc(p.nombre)+'<br><small style="color:var(--muted)">Quedan '+p.stock+' · mínimo '+p.stock_minimo+'</small></span>'+
+        '<button class="btn small" data-restock="'+p.id+'" type="button">Registrar entrada</button></li>'}).join(""):
+      '<li class="empty">Todo el inventario está sobre el mínimo.</li>';
+    $("#recent").innerHTML=moves.slice(0,6).map(function(m){
+      return '<tr><td><span class="pill '+(m.tipo==="entrada"?"in":"out")+'">'+(m.tipo==="entrada"?"Entrada":"Salida")+'</span></td><td>'+esc(m.productos?m.productos.nombre:"—")+'</td><td class="num">'+(m.tipo==="entrada"?"+":"−")+m.cantidad+'</td></tr>'}).join("")||
+      '<tr><td class="empty">Aún no hay movimientos.</td></tr>';
+    $$("[data-restock]").forEach(function(b){b.addEventListener("click",function(){
+      showTab("movimientos");setType("in");$("#mProd").value=b.dataset.restock;updateStock();$("#mQty").focus()})});
+  }
+
+  /* Inventario */
+  function renderInv(){
+    var sel=$("#fcat").value;
+    $("#fcat").innerHTML='<option value="">Todas las categorías</option>'+
+      CATS.map(function(c){return '<option'+(c.nombre===sel?' selected':'')+'>'+esc(c.nombre)+'</option>'}).join("");
+    var t=$("#q").value.toLowerCase().trim(),c=sel,s=$("#fstate").value;
+    var list=products.filter(function(p){
+      if(c&&p.categoria!==c)return false;
+      if(s==="low"&&state(p)!=="low")return false;
+      if(s==="zero"&&state(p)!=="zero")return false;
+      return !t||p.nombre.toLowerCase().indexOf(t)>-1||p.codigo.toLowerCase().indexOf(t)>-1;
+    });
+    $("#invBody").innerHTML=list.length?list.map(function(p){
+      return '<tr><td>'+esc(p.codigo)+'</td><td>'+esc(p.nombre)+'</td><td>'+esc(p.categoria||"")+'</td><td class="num"><b>'+p.stock+'</b></td><td class="num">'+p.stock_minimo+'</td><td class="num">'+q(p.precio)+'</td><td>'+pill(p)+'</td>'+
+        '<td><button class="btn small" data-mv="'+p.id+'" type="button">Mover</button></td></tr>'}).join(""):
+      '<tr><td colspan="8" class="empty">Ningún producto coincide con la búsqueda.</td></tr>';
+    $$("[data-mv]").forEach(function(b){b.addEventListener("click",function(){
+      showTab("movimientos");$("#mProd").value=b.dataset.mv;updateStock();$("#mQty").focus()})});
+  }
+  ["#q","#fcat","#fstate"].forEach(function(s){$(s).addEventListener("input",renderInv)});
+
+  /* Movimientos */
+  function fillProducts(){
+    var cur=$("#mProd").value;
+    $("#mProd").innerHTML=products.map(function(p){return '<option value="'+p.id+'">'+esc(p.nombre)+'</option>'}).join("");
+    if(cur&&find(cur))$("#mProd").value=cur;
+    updateStock();
+  }
+  function updateStock(){
+    var p=find($("#mProd").value);
+    $("#mStock").textContent=p?"Existencia actual: "+p.stock+" unidades":"";
+  }
+  function setType(t){
+    type=t;
+    $("#tIn").setAttribute("aria-pressed",String(t==="in"));
+    $("#tOut").setAttribute("aria-pressed",String(t==="out"));
+    $("#mReason").innerHTML=REASONS[t].map(function(r){return '<option>'+esc(r)+'</option>'}).join("");
+    $("#mSave").textContent=t==="in"?"Guardar entrada":"Guardar salida";
+    $("#mMsg").textContent="";$("#mMsg").className="hint";
+  }
+  async function register(pid,t,qty,reason,ref){
+    var p=find(pid);
+    if(!p)return "Elija un producto.";
+    if(!(qty>=1)||Math.floor(qty)!==qty)return "Escriba una cantidad entera mayor a cero.";
+    if(t==="out"&&qty>p.stock)return "Solo hay "+p.stock+" unidades de "+p.nombre+". Reduzca la cantidad.";
+    var r=await db.rpc("registrar_movimiento",{
+      p_producto:Number(pid),
+      p_tipo:t==="in"?"entrada":"salida",
+      p_cantidad:qty,
+      p_motivo:reason,
+      p_ref:ref||null
+    });
+    if(r.error)return r.error.message||"No se pudo guardar el movimiento.";
+    return "";
+  }
+  $("#tIn").addEventListener("click",function(){setType("in")});
+  $("#tOut").addEventListener("click",function(){setType("out")});
+  $("#mProd").addEventListener("change",updateStock);
+  $("#mSave").addEventListener("click",async function(){
+    if(busy)return;busy=true;this.disabled=true;
+    try{
+      var err=await register($("#mProd").value,type,parseInt($("#mQty").value,10),$("#mReason").value,$("#mRef").value.trim());
+      var m=$("#mMsg");
+      if(err){m.textContent=err;m.className="hint err";return}
+      toast((type==="in"?"Entrada":"Salida")+" guardada");
+      $("#mQty").value=1;$("#mRef").value="";m.textContent="";m.className="hint";
+      await syncAll();
+    }finally{busy=false;this.disabled=false}
+  });
+  function renderQuick(){
+    var sellers=products.filter(function(p){return (Number(p.precio)||0)<=100&&p.stock>0}).slice(0,10);
+    $("#quick").innerHTML=sellers.map(function(p){
+      return '<button class="btn small" data-sell="'+p.id+'" type="button">'+esc(p.nombre.split(" ").slice(0,3).join(" "))+' · '+q(p.precio)+'</button>'}).join("");
+    $$("[data-sell]").forEach(function(b){b.addEventListener("click",async function(){
+      if(busy)return;busy=true;
+      try{
+        var err=await register(b.dataset.sell,"out",1,"Venta","Venta rápida");
+        toast(err||"Venta registrada: "+find(b.dataset.sell).nombre);
+        await syncAll();
+      }finally{busy=false}
+    })});
+  }
+
+  /* Historial */
+  function renderHist(){
+    var ty=$("#hType").value,t=$("#hQ").value.toLowerCase().trim();
+    var list=moves.filter(function(m){
+      if(ty&&m.tipo!==ty)return false;
+      var txt=((m.productos?m.productos.nombre:"")+" "+m.motivo+" "+(m.referencia||"")).toLowerCase();
+      return !t||txt.indexOf(t)>-1;
+    });
+    $("#hBody").innerHTML=list.length?list.map(function(m){
+      return '<tr><td>'+fdate(m.creado_en)+'</td><td><span class="pill '+(m.tipo==="entrada"?"in":"out")+'">'+(m.tipo==="entrada"?"Entrada":"Salida")+'</span></td><td>'+esc(m.productos?m.productos.nombre:"—")+'</td><td class="num">'+(m.tipo==="entrada"?"+":"−")+m.cantidad+'</td><td>'+esc(m.motivo)+'</td><td>'+esc(m.referencia||"—")+'</td></tr>'}).join(""):
+      '<tr><td colspan="6" class="empty">No hay movimientos con ese filtro.</td></tr>';
+  }
+  ["#hType","#hQ"].forEach(function(s){$(s).addEventListener("input",renderHist)});
+  $("#btnCsv").addEventListener("click",function(){
+    var rows=[["Fecha","Tipo","Producto","Cantidad","Motivo","Referencia"]].concat(moves.map(function(m){
+      return [new Date(m.creado_en).toISOString(),m.tipo==="entrada"?"Entrada":"Salida",m.productos?m.productos.nombre:"",m.cantidad,m.motivo,m.referencia||""]}));
+    var csv=rows.map(function(r){return r.map(function(c){return '"'+String(c).replace(/"/g,'""')+'"'}).join(",")}).join("\n");
+    try{
+      var a=document.createElement("a");
+      a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download="movimientos.csv";a.click();
+    }catch(e){}
+    toast("Si no se descargó, este entorno bloquea descargas; en el sistema real sí funcionará");
+  });
+
+  /* Nuevo producto */
+  var dlg=$("#dlg");
+  function fillCats(){
+    $("#pCat").innerHTML=CATS.map(function(c){return '<option value="'+c.id+'">'+esc(c.nombre)+'</option>'}).join("");
+  }
+  function nextCode(){
+    var max=0;
+    products.forEach(function(p){var m=/^P(\d+)$/.exec(p.codigo||"");if(m)max=Math.max(max,parseInt(m[1],10))});
+    return "P"+String(max+1).padStart(4,"0");
+  }
+  $("#btnNew").addEventListener("click",function(){$("#pForm").reset();fillCats();dlg.showModal();$("#pName").focus()});
+  $("#pCancel").addEventListener("click",function(){dlg.close()});
+  $("#pForm").addEventListener("submit",async function(e){
+    e.preventDefault();
+    if(busy)return;busy=true;
+    try{
+      var codigo=$("#pCode").value.trim()||nextCode();
+      if(products.some(function(p){return p.codigo===codigo})){toast("Ese código ya existe. Use otro.");return}
+      var stock=parseInt($("#pStock").value,10)||0;
+      var r=await db.from("productos").insert({
+        codigo:codigo,
+        nombre:$("#pName").value.trim(),
+        categoria_id:Number($("#pCat").value),
+        stock_minimo:parseInt($("#pMin").value,10)||0,
+        precio:parseFloat($("#pPrice").value)||0
+      }).select();
+      if(r.error){
+        toast(r.error.code==="23505"?"Ese código ya existe. Use otro.":("No se pudo guardar: "+r.error.message));
+        return;
+      }
+      if(stock>0){
+        var r2=await db.rpc("registrar_movimiento",{
+          p_producto:r.data[0].id,p_tipo:"entrada",p_cantidad:stock,p_motivo:"Stock inicial",p_ref:null
+        });
+        if(r2.error)toast("Producto creado, pero el stock inicial falló: "+r2.error.message);
+      }
+      dlg.close();toast("Producto guardado");
+      await syncAll();
+    }finally{busy=false}
+  });
+
+  /* Cibercafé */
+  function activeOf(eid){return sessions.filter(function(s){return String(s.equipo_id)===String(eid)&&!s.fin})[0]}
+  function mins(s){return (Date.now()-new Date(s.inicio))/60000+(offsets[s.equipo_id]||0)}
+  function cost(m){return Math.ceil(Math.max(m,0.01)/cfg.block)*cfg.block/60*cfg.rate}
+  function clock(m){var t=Math.floor(m*60),h=Math.floor(t/3600),mm=Math.floor(t%3600/60),ss=t%60;
+    return [h,mm,ss].map(function(x){return String(x).padStart(2,"0")}).join(":")}
+  function cafeToday(){return sessions.filter(function(s){return esHoy(s.inicio)}).reduce(function(a,s){return a+(Number(s.total)||0)},0)}
+  function tick(){
+    equipos.forEach(function(e){
+      var s=activeOf(e.id);if(!s)return;
+      var m=mins(s),a=document.querySelector('[data-timer="'+e.id+'"]'),b=document.querySelector('[data-cost="'+e.id+'"]');
+      if(a)a.textContent=clock(m);
+      if(b)b.textContent=q(cost(m))+" acumulado";
+    });
+  }
+  function renderCafe(){
+    var busyN=equipos.filter(function(e){return !!activeOf(e.id)}).length;
+    $("#cafeInfo").textContent=busyN+" de "+equipos.length+" equipos en uso. Se cobra por bloques de "+cfg.block+" min a Q"+Number(cfg.rate).toFixed(2)+" la hora.";
+    $("#stations").innerHTML=equipos.map(function(e){
+      var s=activeOf(e.id);
+      return '<div class="st '+(s?"busy":"")+'"><div class="sth"><b>'+esc(e.nombre)+'</b><span class="pill '+(s?"low":"ok")+'">'+(s?"En uso":"Libre")+'</span></div>'+
+        (s?
+          '<div class="clock" data-timer="'+e.id+'">00:00:00</div><div class="hint" data-cost="'+e.id+'"></div>'+
+          '<div class="stbtn"><button class="btn small" data-add="'+e.id+'" type="button">+10 min (demo)</button><button class="btn small primary" data-end="'+e.id+'" type="button">Cobrar y terminar</button></div>':
+          '<div class="clock idle">—</div><div class="hint">Disponible</div><div class="stbtn"><button class="btn small primary" data-start="'+e.id+'" type="button">Iniciar sesión</button></div>')+
+        '</div>'}).join("");
+    $("#sBody").innerHTML=sessions.filter(function(s){return esHoy(s.inicio)}).map(function(s){
+      return '<tr><td>'+new Date(s.inicio).toLocaleTimeString("es-GT",{hour:"2-digit",minute:"2-digit"})+'</td><td>'+esc(s.equipos?s.equipos.nombre:"—")+'</td><td class="num">'+(s.minutos||0)+' min</td><td class="num">'+(s.hojas||0)+'</td><td class="num"><b>'+q(s.total)+'</b></td></tr>'}).join("")||
+      '<tr><td colspan="5" class="empty">Aún no hay sesiones cobradas hoy.</td></tr>';
+    tick();
+  }
+  var ending=null,endM=0;
+  $("#stations").addEventListener("click",async function(e){
+    var b=e.target.closest("button");if(!b)return;
+    if(busy)return;busy=true;
+    try{
+      if(b.dataset.start){
+        var eid=b.dataset.start;
+        if(activeOf(eid)){toast("Ese equipo ya tiene una sesión activa");await syncAll();return}
+        var r=await db.from("sesiones").insert({equipo_id:Number(eid)}).select();
+        if(r.error){toast("No se pudo iniciar: "+r.error.message);return}
+        offsets[eid]=0;
+        toast("Sesión iniciada en el equipo "+(equipo(eid)?equipo(eid).nombre:eid));
+        await syncAll();
+      }
+      else if(b.dataset.add){offsets[b.dataset.add]=(offsets[b.dataset.add]||0)+10;tick()}
+      else if(b.dataset.end){
+        var s=activeOf(b.dataset.end);if(!s){await syncAll();return}
+        ending=s;endM=mins(s);
+        $("#cTitle").textContent="Terminar "+(s.equipos?s.equipos.nombre:"equipo");
+        $("#cTime").textContent="Tiempo de uso: "+Math.round(endM)+" min · "+q(cost(endM));
+        $("#cPages").value=0;updateTotal();$("#cdlg").showModal();$("#cPages").focus();
+      }
+    }finally{busy=false}
+  });
+  function updateTotal(){var p=Math.max(0,parseInt($("#cPages").value,10)||0);$("#cTotal").textContent=q(cost(endM)+p*cfg.page)}
+  $("#cPages").addEventListener("input",updateTotal);
+  $("#cCancel").addEventListener("click",function(){$("#cdlg").close()});
+  $("#cForm").addEventListener("submit",async function(e){
+    e.preventDefault();
+    if(busy)return;busy=true;
+    try{
+      var p=Math.max(0,parseInt($("#cPages").value,10)||0),total=cost(endM)+p*cfg.page;
+      var r=await db.from("sesiones").update({
+        fin:new Date().toISOString(),minutos:Math.round(endM),hojas:p,total:total
+      }).eq("id",ending.id);
+      if(r.error){toast("No se pudo cobrar: "+r.error.message);return}
+      delete offsets[ending.equipo_id];
+      $("#cdlg").close();toast("Cobrado "+q(total)+" · equipo libre");
+      ending=null;
+      await syncAll();
+    }finally{busy=false}
+  });
+  $("#cRate").addEventListener("input",function(){
+    cfg.rate=Math.max(0,parseFloat(this.value)||0);renderCafe();renderResumen();
+  });
+  $("#cRate").addEventListener("change",async function(){
+    var r=await db.from("configuracion").update({tarifa_hora:cfg.rate}).eq("id",cfg.id);
+    if(r.error)toast("No se pudo guardar la tarifa");
+  });
+  $("#cBlock").addEventListener("change",async function(){
+    cfg.block=parseInt(this.value,10);renderCafe();
+    var r=await db.from("configuracion").update({bloque_min:cfg.block}).eq("id",cfg.id);
+    if(r.error)toast("No se pudo guardar el bloque");
+  });
+  setInterval(tick,1000);
+
+  /* Tema */
+  var root=document.documentElement;
+  $("#btnTheme").addEventListener("click",function(){
+    var dark=root.dataset.theme==="dark"||(!root.dataset.theme&&matchMedia("(prefers-color-scheme: dark)").matches);
+    root.dataset.theme=dark?"light":"dark";
+    $("#btnTheme").textContent=dark?"Modo oscuro":"Modo claro";
+  });
+  if(matchMedia("(prefers-color-scheme: dark)").matches)$("#btnTheme").textContent="Modo claro";
+
+  function refresh(){renderResumen();renderInv();fillProducts();renderQuick();renderHist();renderCafe()}
+  function conTiempo(p,label){
+    return new Promise(function(resolve,reject){
+      var timer=setTimeout(function(){reject(new Error("Tiempo agotado al consultar "+label+" (15 segundos)."))},15000);
+      Promise.resolve(p).then(function(v){clearTimeout(timer);resolve(v)},function(e){clearTimeout(timer);reject(e)});
+    });
+  }
+  async function syncAll(){
+    var rs=await Promise.all([
+      conTiempo(db.from("stock_actual").select("*").order("nombre"),"stock de productos"),
+      conTiempo(db.from("movimientos").select("*, productos(nombre, codigo)").order("creado_en",{ascending:false}).limit(1000),"movimientos"),
+      conTiempo(db.from("sesiones").select("*, equipos(nombre)").order("inicio",{ascending:false}).limit(500),"sesiones"),
+      conTiempo(db.from("equipos").select("*").order("id"),"equipos"),
+      conTiempo(db.from("configuracion").select("*").limit(1),"configuración"),
+      conTiempo(db.from("categorias").select("*").order("nombre"),"categorías")
+    ]);
+    var fallo=rs.filter(function(r){return r.error});
+    if(fallo.length){console.error(fallo[0].error);toast("No se pudo conectar con la base de datos");return false}
+    products=rs[0].data||[];
+    moves=rs[1].data||[];
+    sessions=rs[2].data||[];
+    equipos=rs[3].data||[];
+    var c=(rs[4].data||[])[0];
+    if(c){cfg={id:c.id,rate:Number(c.tarifa_hora),block:Number(c.bloque_min),page:Number(c.precio_hoja)};
+      $("#cRate").value=cfg.rate;$("#cBlock").value=cfg.block}
+    CATS=rs[5].data||[];
+    refresh();
+    return true;
+  }
+  /* Autenticación (Fase 4) */
+  var rol="cajero";
+  function msgAuth(e){
+    var m=(e&&e.message)||"";
+    if(m.indexOf("Invalid login credentials")>-1)return "Correo o contraseña incorrectos.";
+    if(m.indexOf("Email not confirmed")>-1)return "El correo aún no está confirmado.";
+    return m||"No se pudo iniciar sesión.";
+  }
+  function showLogin(){
+    $("#loginView").hidden=false;$("#btnOut").hidden=true;
+    document.body.classList.remove("no-admin");rol="cajero";
+    products=[];moves=[];sessions=[];equipos=[];CATS=[];
+    refresh();
+  }
+  async function afterLogin(u){
+    $("#loginMsg").textContent="Sesión iniciada; verificando cuenta…";
+    $("#loginMsg").className="hint";
+    if(!u)throw new Error("Supabase no devolvió el usuario autenticado.");
+    $("#loginMsg").textContent="Cuenta verificada; cargando perfil…";
+    var r=await db.from("perfiles").select("rol").eq("usuario_id",u.id).maybeSingle();
+    if(r.error)throw r.error;
+    rol=(r&&r.data&&r.data.rol)||"cajero";
+    document.body.classList.toggle("no-admin",rol!=="admin");
+    $("#loginMsg").textContent="Perfil cargado; cargando inventario…";
+    if(!await syncAll())throw new Error("No se pudieron leer los datos. Revisa la conexión y vuelve a intentar.");
+    $("#loginView").hidden=true;$("#btnOut").hidden=false;
+    $("#loginPassword").value="";
+  }
+  $("#loginForm").addEventListener("submit",async function(e){
+    e.preventDefault();
+    if(busy)return;busy=true;$("#loginBtn").disabled=true;
+    try{
+      var r=await db.auth.signInWithPassword({
+        email:$("#loginEmail").value.trim(),
+        password:$("#loginPassword").value
+      });
+      if(r.error){
+        $("#loginMsg").textContent=msgAuth(r.error);
+        $("#loginMsg").className="hint err";
+        return;
+      }
+      await afterLogin(r.data.user);
+      $("#loginMsg").textContent="";
+    }catch(err){
+      console.error("Error después del inicio de sesión:",err);
+      $("#loginMsg").textContent="El acceso fue aceptado, pero no se pudo cargar la cuenta: "+msgAuth(err);
+      $("#loginMsg").className="hint err";
+    }finally{busy=false;$("#loginBtn").disabled=false}
+  });
+  $("#btnOut").addEventListener("click",async function(){
+    await db.auth.signOut();
+    showLogin();
+  });
+  db.auth.onAuthStateChange(function(ev){if(ev==="SIGNED_OUT")showLogin()});
+  async function initAuth(){
+    var s=await db.auth.getSession();
+    if(s.data.session){try{await afterLogin(s.data.session.user)}catch(e){console.error("Error al restaurar la sesión:",e);showLogin();$("#loginMsg").textContent="No se pudo completar la carga: "+msgAuth(e);$("#loginMsg").className="hint err"}}
+    else showLogin();
+  }
+
+  setType("in");refresh();
+  var h=location.hash.replace("#","");
+  if(["resumen","inventario","movimientos","cibercafe","historial"].indexOf(h)>-1)showTab(h);
+  initAuth();
+})();
+</script>
+<script>
+  /* Verificación final de carga: si la librería no llegó o hubo errores de script,
+     se explica en #loginMsg en vez de dejar el login mudo. */
+  function __verificarCarga() {
+    var m = document.getElementById("loginMsg");
+    if (!m || !window.__diag) return;
+    var sinLibreria = typeof window.supabase === "undefined" || !window.supabase.createClient;
+    if (!sinLibreria && !window.__diag.length) return;
+    m.className = "hint err";
+    m.textContent = "La aplicación no cargó bien" +
+      (window.__diag[0] ? ": " + window.__diag[0] : "") +
+      ". Recarga con Ctrl+F5; si continúa, abre F12 → Consola y revisa si una extensión bloquea cdn.jsdelivr.net o supabase.co.";
+  }
+  if (document.readyState === "complete") __verificarCarga();
+  else window.addEventListener("load", __verificarCarga);
+</script>
+</body>
+</html>
