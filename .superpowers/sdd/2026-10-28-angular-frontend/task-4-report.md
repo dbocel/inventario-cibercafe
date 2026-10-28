@@ -27,3 +27,30 @@ Se implementaron los componentes de registro de movimientos y cibercafé y se in
 - El desplazamiento `+10 min (demo)` modifica únicamente el estado local y no se persiste como columna; como en el flujo original, el total al cerrar incluye el tiempo mostrado localmente.
 - Los permisos de tarifas se limitan en la UI a admin; las escrituras continúan dependiendo de RLS existente. La sesión se inserta/actualiza usando las columnas existentes.
 - La prueba controla reloj con fake timers y usa cliente simulado. No se efectuó verificación visual interactiva del navegador.
+
+## Fix round 1 — cobertura de revisión
+
+### Hallazgo 1: pruebas de cibercafé
+
+- Agregada prueba de actualización visual del reloj tras avanzar el reloj fake 1 segundo; verifica `00:16:00` → `00:16:01` renderizado en fixture.
+- Agregada prueba de aporte de páginas separado del tiempo: Q1.50 de mínimo por tiempo + Q1.00 por dos hojas = Q2.50.
+- Agregada prueba de reconstrucción después de crear un componente nuevo con una sesión cuyo `inicio` persiste; verifica equipo activo y reloj desde ese inicio.
+- Agregada prueba de persistencia exacta del cierre: `fin`, minutos redondeados, hojas y total enviado al método de actualización. El primer resultado reveló que la expectativa de total debía ser Q4.00 (16 min = dos bloques Q3.00 + dos hojas Q1.00); se corrigió el test, sin cambiar producto.
+
+### Hallazgo 2: interacción venta rápida
+
+- Agregada prueba que hace clic en el control renderizado de “Venta rápida”, verifica los argumentos exactos `(1, 'salida', 1, 'Venta', 'Venta rápida')` y que `refresh` se emite después del éxito.
+
+### Evidencia
+
+- **RED:** el primer run del test de cierre falló con diferencia significativa únicamente en el total esperado (`expected 3.5`, recibido `4`); el cálculo existente concuerda con bloques de 15 minutos y cargo por hoja, así que se corrigió la expectativa. No hubo cambio de comportamiento de producción.
+- **Pruebas enfocadas:** `npm.cmd test -- --watch=false --include=src/app/features/cybercafe/cybercafe.component.spec.ts --include=src/app/features/movements/movements.component.spec.ts` — 2 archivos, 8 pruebas pasaron.
+- **Suite completa:** `npm.cmd test -- --watch=false` — 11 archivos, 43 pruebas pasaron.
+- **Build:** `npm.cmd run build` — compilación de producción completada.
+- **Formato:** `npm.cmd exec prettier -- --check src/app/features/cybercafe/cybercafe.component.spec.ts src/app/features/movements/movements.component.spec.ts` — formato correcto.
+- **Diff:** `git diff --check` — sin errores.
+- Solo se cambiaron los dos archivos de pruebas y este informe; no se ejecutaron escrituras contra Supabase.
+
+### Inquietudes
+
+- Sin inquietudes funcionales nuevas. No se realizó verificación manual de navegador; la interacción se probó con fixture Angular y reloj controlado.

@@ -69,4 +69,90 @@ describe('CybercafeComponent', () => {
     expect(service.startSession).toHaveBeenCalledWith(2);
     fixture.destroy();
   });
+
+  it('updates the rendered timer by one second when the controlled clock advances', async () => {
+    await TestBed.configureTestingModule({
+      imports: [CybercafeComponent],
+      providers: [
+        { provide: InventoryDataService, useValue: service },
+        { provide: AuthService, useValue: { currentRole: () => 'cajero' } },
+      ],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(CybercafeComponent);
+    fixture.componentRef.setInput('data', data);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.clock').textContent.trim()).toBe('00:16:00');
+
+    await vi.advanceTimersByTimeAsync(1000);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.clock').textContent.trim()).toBe('00:16:01');
+    fixture.destroy();
+  });
+
+  it('calculates page charges independently from the minimum rounded time charge', async () => {
+    vi.setSystemTime(new Date(start));
+    await TestBed.configureTestingModule({
+      imports: [CybercafeComponent],
+      providers: [
+        { provide: InventoryDataService, useValue: service },
+        { provide: AuthService, useValue: { currentRole: () => 'cajero' } },
+      ],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(CybercafeComponent);
+    fixture.componentRef.setInput('data', data);
+    const component = fixture.componentInstance;
+    component.beginFinish(session);
+    component.pages = 2;
+
+    expect(component.cost(component.minutes(session))).toBe(1.5);
+    expect(component.total - component.cost(component.minutes(session))).toBe(1);
+    expect(component.total).toBe(2.5);
+    fixture.destroy();
+  });
+
+  it('reconstructs the active timer from the persisted session start after component reload', async () => {
+    await TestBed.configureTestingModule({
+      imports: [CybercafeComponent],
+      providers: [
+        { provide: InventoryDataService, useValue: service },
+        { provide: AuthService, useValue: { currentRole: () => 'cajero' } },
+      ],
+    }).compileComponents();
+    const first = TestBed.createComponent(CybercafeComponent);
+    first.componentRef.setInput('data', data);
+    first.destroy();
+
+    const reloaded = TestBed.createComponent(CybercafeComponent);
+    reloaded.componentRef.setInput('data', data);
+    reloaded.detectChanges();
+    expect(reloaded.componentInstance.active(2)?.inicio).toBe(start);
+    expect(reloaded.nativeElement.querySelector('.clock').textContent.trim()).toBe('00:16:00');
+    reloaded.destroy();
+  });
+
+  it('persists exact finish data including the rounded duration and page charge', async () => {
+    await TestBed.configureTestingModule({
+      imports: [CybercafeComponent],
+      providers: [
+        { provide: InventoryDataService, useValue: service },
+        { provide: AuthService, useValue: { currentRole: () => 'cajero' } },
+      ],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(CybercafeComponent);
+    fixture.componentRef.setInput('data', data);
+    const component = fixture.componentInstance;
+    component.beginFinish(session);
+    component.pages = 2;
+
+    await component.finish();
+
+    expect(service.finishSession).toHaveBeenCalledOnce();
+    expect(service.finishSession).toHaveBeenCalledWith(4, {
+      fin: '2026-10-28T10:16:00.000Z',
+      minutos: 16,
+      hojas: 2,
+      total: 4,
+    });
+    fixture.destroy();
+  });
 });
