@@ -57,11 +57,12 @@
               >
             </td>
             <td>
+              <button class="btn small" type="button" (click)="move.emit(product.id)">Mover</button>
               <button
                 class="btn small"
                 type="button"
                 (click)="quickSale(product)"
-                [disabled]="product.stock < 1"
+                [disabled]="product.stock < 1 || saving || refreshing"
               >
                 Venta rápida
               </button>
@@ -80,10 +81,16 @@
   }
 </div>
 @if (dialogOpen) {
-  <div class="backdrop">
-    <form class="dialog form" (ngSubmit)="saveProduct()">
-      <h2>Nuevo producto</h2>
-      <label>Nombre<input name="nombre" required [(ngModel)]="draft.nombre" /></label>
+  <dialog
+    appModal
+    class="dialog"
+    aria-labelledby="productTitle"
+    [modalBusy]="saving"
+    (dismissed)="dialogOpen = false"
+  >
+    <form class="form" (ngSubmit)="saveProduct()">
+      <h2 id="productTitle">Nuevo producto</h2>
+      <label>Nombre<input name="nombre" autofocus required [(ngModel)]="draft.nombre" /></label>
       <div class="row2">
         <label
           >Categoría<select name="categoria" [(ngModel)]="draft.categoria_id">
@@ -124,9 +131,10 @@
         <p class="message" role="alert">{{ message }}</p>
       }
       <div class="actions">
-        <button class="btn" type="button" (click)="dialogOpen = false">Cancelar</button
+        <button class="btn" type="button" [disabled]="saving" (click)="dialogOpen = false">
+          Cancelar</button
         ><button class="btn primary" type="submit" [disabled]="saving">Guardar producto</button>
       </div>
     </form>
-  </div>
+  </dialog>
 }

@@ -8,12 +8,14 @@ describe('InventoryDataService', () => {
   let insertResponse: { data: unknown[] | null; error: unknown | null };
   let rpcResponse: { data: unknown; error: unknown | null };
   let failedTable: string | null;
+  let rejectedRpc: boolean;
 
   beforeEach(() => {
     queries = [];
     insertResponse = { data: [{ id: 9, codigo: 'P0009', nombre: 'Lápiz' }], error: null };
     rpcResponse = { data: null, error: null };
     failedTable = null;
+    rejectedRpc = false;
     const client = {
       from: (table: string) => {
         const query = { table, calls: [] as unknown[][] };
@@ -38,6 +40,7 @@ describe('InventoryDataService', () => {
       },
       rpc: (...args: unknown[]) => {
         queries.push({ table: 'rpc', calls: [args] });
+        if (rejectedRpc) return Promise.reject(new Error('Sin conexión'));
         return Promise.resolve(rpcResponse);
       },
     };
@@ -120,6 +123,41 @@ describe('InventoryDataService', () => {
         initialStock: 0,
       }),
     ).rejects.toThrow('Ese código ya existe. Use otro.');
+  });
+
+  it('identifies an already-created product when initial stock fails', async () => {
+    rpcResponse = { data: null, error: { message: 'Stock rechazado' } };
+    await expect(
+      service.createProduct({
+        nombre: 'Lápiz',
+        categoria_id: 3,
+        codigo: 'P0009',
+        stock_minimo: 5,
+        precio: 2,
+        initialStock: 4,
+      }),
+    ).rejects.toMatchObject({
+      product: { id: 9 },
+      message: expect.stringContaining('Stock rechazado'),
+    });
+    expect(queries.filter((q) => q.table === 'productos')).toHaveLength(1);
+  });
+
+  it('also reconciles a product when the initial-stock request rejects', async () => {
+    rejectedRpc = true;
+    await expect(
+      service.createProduct({
+        nombre: 'Lápiz',
+        categoria_id: 3,
+        codigo: 'P0009',
+        stock_minimo: 5,
+        precio: 2,
+        initialStock: 4,
+      }),
+    ).rejects.toMatchObject({
+      product: { id: 9 },
+      message: expect.stringContaining('Sin conexión'),
+    });
   });
 
   it('records positive initial stock only through registrar_movimiento', async () => {

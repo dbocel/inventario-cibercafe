@@ -1,24 +1,30 @@
-import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { ModalDirective } from '../../shared/modal.directive';
 import { AuthService } from '../../core/auth/auth.service';
 import {
   AppData,
   InventoryDataService,
   NewProductInput,
   Product,
+  ProductStockError,
 } from '../../core/data/inventory-data.service';
 
 @Component({
   selector: 'app-inventory',
-  imports: [FormsModule],
+  imports: [FormsModule, ModalDirective],
   templateUrl: './inventory.component.html',
   styleUrl: './inventory.component.css',
 })
 export class InventoryComponent {
   @Input({ required: true }) data!: AppData;
   @Output() readonly refresh = new EventEmitter<void>();
+  @Output() readonly move = new EventEmitter<number>();
+  @Input() reload: () => Promise<void> = async () => {};
+  @Input() refreshing = false;
   private readonly auth = inject(AuthService);
   private readonly dataService = inject(InventoryDataService);
+  private readonly changeDetector = inject(ChangeDetectorRef);
   readonly isAdmin = () => this.auth.currentRole() === 'admin';
   search = '';
   category = '';
@@ -64,7 +70,7 @@ export class InventoryComponent {
   }
 
   async saveProduct(): Promise<void> {
-    if (!this.isAdmin() || this.saving) return;
+    if (!this.isAdmin() || this.saving || this.refreshing) return;
     const input = {
       ...this.draft,
       nombre: this.draft.nombre.trim(),
@@ -85,21 +91,33 @@ export class InventoryComponent {
       await this.dataService.createProduct(input);
       this.dialogOpen = false;
       this.refresh.emit();
+      await this.reload();
     } catch (error) {
       this.message = error instanceof Error ? error.message : 'No se pudo guardar el producto.';
+      if (error instanceof ProductStockError) {
+        this.dialogOpen = false;
+        this.refresh.emit();
+        await this.reload();
+      }
     } finally {
       this.saving = false;
+      this.changeDetector.markForCheck();
     }
   }
 
   async quickSale(product: Product): Promise<void> {
-    if (product.stock < 1) return;
+    if (product.stock < 1 || this.saving || this.refreshing) return;
+    this.saving = true;
     try {
       await this.dataService.registerMovement(product.id, 'salida', 1, 'Venta', 'Venta rápida');
       this.message = `Venta registrada: ${product.nombre}`;
       this.refresh.emit();
+      await this.reload();
     } catch (error) {
       this.message = error instanceof Error ? error.message : 'No se pudo guardar la venta.';
+    } finally {
+      this.saving = false;
+      this.changeDetector.markForCheck();
     }
   }
 

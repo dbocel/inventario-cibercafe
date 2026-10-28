@@ -1,4 +1,5 @@
 import {
+  ChangeDetectorRef,
   Component,
   EventEmitter,
   Input,
@@ -10,24 +11,41 @@ import {
 } from '@angular/core';
 import { AuthService } from '../../core/auth/auth.service';
 import { FormsModule } from '@angular/forms';
+import { ModalDirective } from '../../shared/modal.directive';
 import { AppData, InventoryDataService, Session } from '../../core/data/inventory-data.service';
 
 @Component({
   selector: 'app-cybercafe',
-  imports: [FormsModule],
+  imports: [FormsModule, ModalDirective],
   templateUrl: './cybercafe.component.html',
   styleUrl: './cybercafe.component.css',
 })
 export class CybercafeComponent implements OnInit, OnDestroy {
   @Input({ required: true }) data!: AppData;
   @Output() readonly refresh = new EventEmitter<void>();
+  @Input() reload: () => Promise<void> = async () => {};
+  @Input() refreshing = false;
   private readonly service = inject(InventoryDataService);
   private readonly auth = inject(AuthService);
-  rate = 6;
-  block = 15;
+  private readonly changeDetector = inject(ChangeDetectorRef);
+  private hourlyRate = 6;
+  private billingBlock = 15;
+  get rate(): number {
+    return this.hourlyRate;
+  }
+  set rate(value: number) {
+    this.hourlyRate = Number.isFinite(Number(value)) ? Math.max(0, Number(value)) : 0;
+  }
+  get block(): number {
+    return this.billingBlock;
+  }
+  set block(value: number) {
+    this.billingBlock = Number.isFinite(Number(value)) ? Math.max(1, Math.floor(Number(value))) : 1;
+  }
   pageRate = 0.5;
   offsets: Record<number, number> = {};
   selected: Session | null = null;
+  finishMinutes = 0;
   pages = 0;
   message = '';
   saving = false;
@@ -69,16 +87,18 @@ export class CybercafeComponent implements OnInit, OnDestroy {
       .join(':');
   }
   async start(equipmentId: number): Promise<void> {
-    if (this.saving || this.active(equipmentId)) return;
+    if (this.saving || this.refreshing || this.active(equipmentId)) return;
     this.saving = true;
     try {
       await this.service.startSession(equipmentId);
       this.offsets[equipmentId] = 0;
       this.refresh.emit();
+      await this.reload();
     } catch (error) {
       this.message = error instanceof Error ? error.message : 'No se pudo iniciar la sesión.';
     } finally {
       this.saving = false;
+      this.changeDetector.markForCheck();
     }
   }
   addDemo(session: Session): void {
@@ -86,20 +106,22 @@ export class CybercafeComponent implements OnInit, OnDestroy {
     this.tick.update((value) => value + 1);
   }
   beginFinish(session: Session): void {
+    if (this.saving || this.refreshing) return;
     this.selected = session;
+    this.finishMinutes = this.minutes(session);
     this.pages = 0;
   }
   get total(): number {
     return this.selected
-      ? this.cost(this.minutes(this.selected)) +
+      ? this.cost(this.finishMinutes) +
           Math.max(0, Math.floor(Number(this.pages) || 0)) * this.pageRate
       : 0;
   }
   async finish(): Promise<void> {
-    if (!this.selected || this.saving) return;
+    if (!this.selected || this.saving || this.refreshing) return;
     this.saving = true;
     const session = this.selected;
-    const minutes = this.minutes(session);
+    const minutes = this.finishMinutes;
     const pages = Math.max(0, Math.floor(Number(this.pages) || 0));
     try {
       await this.service.finishSession(session.id, {
@@ -111,10 +133,12 @@ export class CybercafeComponent implements OnInit, OnDestroy {
       delete this.offsets[session.equipo_id];
       this.selected = null;
       this.refresh.emit();
+      await this.reload();
     } catch (error) {
       this.message = error instanceof Error ? error.message : 'No se pudo cobrar.';
     } finally {
       this.saving = false;
+      this.changeDetector.markForCheck();
     }
   }
   async saveRate(): Promise<void> {

@@ -110,13 +110,8 @@ td {
 .tablewrap {
   overflow: auto;
 }
-.overlay {
-  position: fixed;
-  inset: 0;
+.dialog::backdrop {
   background: #0009;
-  display: grid;
-  place-items: center;
-  z-index: 10;
 }
 .dialog {
   width: min(440px, 92vw);
@@ -124,6 +119,7 @@ td {
   border: 2px solid var(--ink);
   border-radius: 12px;
   background: var(--surface);
+  color: var(--ink);
 }
 .dialog input {
   width: 100%;

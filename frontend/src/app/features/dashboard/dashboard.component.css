@@ -1,25 +1,30 @@
 .stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
   margin-bottom: 20px;
 }
 .stat {
   background: var(--surface);
   border: 1.5px solid var(--line);
   border-radius: 10px;
-  padding: 14px;
+  padding: 14px 16px;
 }
 .stat b {
   display: block;
-  font-size: 22px;
+  font:
+    800 30px 'Bricolage Grotesque',
+    system-ui,
+    sans-serif;
 }
 .stat span,
 small {
   color: var(--muted);
+  font-size: 13px;
 }
 .stat.alert {
-  border-color: var(--out);
+  background: var(--warn-bg);
+  border-color: var(--hi);
 }
 .grid2 {
   display: grid;
@@ -48,6 +53,15 @@ h2 {
   gap: 10px;
   padding: 9px 0;
   border-bottom: 1px solid var(--line);
+}
+.btn.small {
+  border: 1.5px solid var(--ink);
+  background: var(--surface);
+  border-radius: 8px;
+  padding: 5px 9px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
 }
 .tablewrap {
   overflow-x: auto;

@@ -62,7 +62,7 @@
     <section id="tab-resumen" [hidden]="activeTab() !== 'resumen'">
       <div class="feature-slot" data-feature="resumen">
         @if (appData(); as data) {
-          <app-dashboard [data]="data" />
+          <app-dashboard [data]="data" (restock)="openMovement($event, 'entrada')" />
         } @else if (dataLoading()) {
           <p role="status">Cargando datos…</p>
         } @else {
@@ -74,7 +74,12 @@
     <section id="tab-inventario" [hidden]="activeTab() !== 'inventario'">
       <div class="feature-slot" data-feature="inventario">
         @if (appData(); as data) {
-          <app-inventory [data]="data" (refresh)="loadData()" />
+          <app-inventory
+            [data]="data"
+            [reload]="reloadData"
+            [refreshing]="dataLoading()"
+            (move)="openMovement($event)"
+          />
         } @else if (dataLoading()) {
           <p role="status">Cargando datos…</p>
         } @else {
@@ -86,7 +91,7 @@
     <section id="tab-movimientos" [hidden]="activeTab() !== 'movimientos'">
       <div class="feature-slot" data-feature="movimientos">
         @if (appData(); as data) {
-          <app-movements [data]="data" (refresh)="loadData()" />
+          <app-movements [data]="data" [reload]="reloadData" [refreshing]="dataLoading()" />
         } @else if (dataLoading()) {
           <p role="status">Cargando datos…</p>
         } @else {
@@ -98,7 +103,7 @@
     <section id="tab-cibercafe" [hidden]="activeTab() !== 'cibercafe'">
       <div class="feature-slot" data-feature="cibercafe">
         @if (appData(); as data) {
-          <app-cybercafe [data]="data" (refresh)="loadData()" />
+          <app-cybercafe [data]="data" [reload]="reloadData" [refreshing]="dataLoading()" />
         } @else if (dataLoading()) {
           <p role="status">Cargando datos…</p>
         } @else {

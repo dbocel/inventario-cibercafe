@@ -66,7 +66,10 @@ td {
   color: var(--in);
   background: var(--in-bg);
 }
-.low,
+.low {
+  color: var(--hi-ink);
+  background: var(--hi);
+}
 .zero {
   color: var(--out);
   background: var(--out-bg);
@@ -79,20 +82,15 @@ td {
 .message {
   color: var(--out);
 }
-.backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 10;
+.dialog::backdrop {
   background: #0008;
-  display: grid;
-  place-items: center;
-  padding: 16px;
 }
 .dialog {
   width: min(480px, 100%);
   max-height: 90vh;
   overflow: auto;
   background: var(--surface);
+  color: var(--ink);
   border: 1.5px solid var(--line);
   border-radius: 12px;
   padding: 18px;

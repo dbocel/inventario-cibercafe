@@ -29,7 +29,7 @@
     <div class="row2">
       <div>
         <label for="mQty">Cantidad</label
-        ><input id="mQty" type="number" min="1" step="1" [(ngModel)]="quantity" />
+        ><input #quantityInput id="mQty" type="number" min="1" step="1" [(ngModel)]="quantity" />
       </div>
       <div>
         <label for="mReason">Motivo</label
@@ -43,7 +43,7 @@
     <label for="mRef">Referencia (opcional)</label
     ><input id="mRef" [(ngModel)]="reference" placeholder="Factura, ticket o nota" />
     <p class="hint" aria-live="polite">{{ message }}</p>
-    <button class="btn primary" type="button" [disabled]="saving" (click)="save()">
+    <button class="btn primary" type="button" [disabled]="saving || refreshing" (click)="save()">
       {{ saving ? 'Guardando…' : 'Guardar ' + (type === 'entrada' ? 'entrada' : 'salida') }}
     </button>
   </div>
@@ -51,9 +51,14 @@
     <h2>Venta rápida</h2>
     <p class="hint">Toque un producto para registrar una salida por venta de 1 unidad.</p>
     <div class="quick">
-      @for (product of data.products.filter(isSeller); track product.id) {
-        <button class="btn small" type="button" [disabled]="saving" (click)="quickSale(product)">
-          {{ product.nombre }} · Q{{ product.precio.toFixed(2) }}
+      @for (product of quickProducts; track product.id) {
+        <button
+          class="btn small"
+          type="button"
+          [disabled]="saving || refreshing"
+          (click)="quickSale(product)"
+        >
+          {{ quickLabel(product) }} · Q{{ product.precio.toFixed(2) }}
         </button>
       }
     </div>

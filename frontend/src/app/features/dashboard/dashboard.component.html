@@ -31,6 +31,9 @@
               >Quedan {{ product.stock }} · mínimo {{ product.stock_minimo }}</small
             ></span
           >
+          <button class="btn small" type="button" (click)="restock.emit(product.id)">
+            Registrar entrada
+          </button>
         </li>
       } @empty {
         <li class="empty">Todo el inventario está sobre el mínimo.</li>

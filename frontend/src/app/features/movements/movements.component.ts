@@ -1,4 +1,13 @@
-import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
+import {
+  ChangeDetectorRef,
+  Component,
+  ElementRef,
+  EventEmitter,
+  Input,
+  Output,
+  ViewChild,
+  inject,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AppData, InventoryDataService, Product } from '../../core/data/inventory-data.service';
 
@@ -11,7 +20,19 @@ import { AppData, InventoryDataService, Product } from '../../core/data/inventor
 export class MovementsComponent {
   @Input({ required: true }) data!: AppData;
   @Output() readonly refresh = new EventEmitter<void>();
+  @Input() reload: () => Promise<void> = async () => {};
+  @Input() refreshing = false;
   private readonly service = inject(InventoryDataService);
+  private readonly changeDetector = inject(ChangeDetectorRef);
+  @ViewChild('quantityInput') private quantityInput?: ElementRef<HTMLInputElement>;
+  focusQuantity(): void {
+    this.quantityInput?.nativeElement.focus();
+  }
+  selectProduct(id: number, type: 'entrada' | 'salida'): void {
+    this.productId = id;
+    this.setType(type);
+    this.changeDetector.markForCheck();
+  }
   type: 'entrada' | 'salida' = 'entrada';
   productId = 0;
   quantity = 1;
@@ -27,13 +48,19 @@ export class MovementsComponent {
     return this.data.products.find((p) => p.id === Number(this.productId));
   }
   isSeller = (product: Product): boolean => Number(product.precio) <= 100 && product.stock > 0;
+  get quickProducts(): Product[] {
+    return this.data.products.filter(this.isSeller).slice(0, 10);
+  }
+  quickLabel(product: Product): string {
+    return product.nombre.split(' ').slice(0, 3).join(' ');
+  }
   setType(type: 'entrada' | 'salida'): void {
     this.type = type;
     this.reason = this.reasons[type][0];
     this.message = '';
   }
   async save(): Promise<void> {
-    if (this.saving) return;
+    if (this.saving || this.refreshing) return;
     const product = this.selected;
     if (!product) {
       this.message = 'Elija un producto.';
@@ -61,23 +88,27 @@ export class MovementsComponent {
       this.quantity = 1;
       this.reference = '';
       this.refresh.emit();
+      await this.reload();
     } catch (error) {
       this.message = error instanceof Error ? error.message : 'No se pudo guardar el movimiento.';
     } finally {
       this.saving = false;
+      this.changeDetector.markForCheck();
     }
   }
   async quickSale(product: Product): Promise<void> {
-    if (this.saving || product.stock < 1) return;
+    if (this.saving || this.refreshing || product.stock < 1) return;
     this.saving = true;
     try {
       await this.service.registerMovement(product.id, 'salida', 1, 'Venta', 'Venta rápida');
       this.message = `Venta registrada: ${product.nombre}`;
       this.refresh.emit();
+      await this.reload();
     } catch (error) {
       this.message = error instanceof Error ? error.message : 'No se pudo guardar la venta.';
     } finally {
       this.saving = false;
+      this.changeDetector.markForCheck();
     }
   }
 }

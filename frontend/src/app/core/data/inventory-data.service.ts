@@ -79,6 +79,17 @@ export class DataReadError extends Error {
   }
 }
 
+export class ProductStockError extends Error {
+  constructor(
+    readonly product: Product,
+    detail: string,
+  ) {
+    super(
+      `Producto creado, pero el stock inicial falló: ${detail}. Revise existencias y registre la entrada pendiente desde Movimientos; no vuelva a crear el producto.`,
+    );
+  }
+}
+
 @Injectable({ providedIn: 'root' })
 export class InventoryDataService {
   private readonly timeoutMs = 15_000;
@@ -176,17 +187,21 @@ export class InventoryDataService {
     const product = (data as Product[] | null)?.[0];
     if (!product) throw new Error('No se recibió el producto guardado.');
     if (initialStock > 0) {
-      const { error: stockError } = await this.supabase.client.rpc('registrar_movimiento', {
-        p_producto: product.id,
-        p_tipo: 'entrada',
-        p_cantidad: initialStock,
-        p_motivo: 'Stock inicial',
-        p_ref: null,
-      });
-      if (stockError)
-        throw new Error(
-          `Producto creado, pero el stock inicial falló: ${(stockError as { message?: string }).message ?? 'Error desconocido'}`,
+      try {
+        const { error: stockError } = await this.supabase.client.rpc('registrar_movimiento', {
+          p_producto: product.id,
+          p_tipo: 'entrada',
+          p_cantidad: initialStock,
+          p_motivo: 'Stock inicial',
+          p_ref: null,
+        });
+        if (stockError) throw stockError;
+      } catch (error) {
+        throw new ProductStockError(
+          product,
+          (error as { message?: string }).message ?? 'Error desconocido',
         );
+      }
     }
     return product;
   }

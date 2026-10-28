@@ -51,7 +51,7 @@
           <button
             type="button"
             class="btn small primary"
-            [disabled]="saving"
+            [disabled]="saving || refreshing"
             (click)="start(equipment.id)"
           >
             Iniciar sesión
@@ -94,26 +94,29 @@
   </div>
 </div>
 @if (selected) {
-  <div class="overlay">
-    <div class="dialog">
-      <h2>Terminar {{ selected.equipos?.nombre || 'equipo' }}</h2>
-      <p>
-        Tiempo de uso: {{ Math.round(minutes(selected)) }} min · Q{{
-          cost(minutes(selected)).toFixed(2)
-        }}
-      </p>
-      <label for="cPages">Hojas impresas (Q{{ pageRate.toFixed(2) }} cada una)</label
-      ><input id="cPages" type="number" min="0" step="1" [(ngModel)]="pages" />
-      <div class="total">
-        <b>Q{{ total.toFixed(2) }}</b
-        ><span>Total a cobrar</span>
-      </div>
-      <div class="buttons">
-        <button class="btn" type="button" (click)="selected = null">Cancelar</button
-        ><button class="btn primary" type="button" [disabled]="saving" (click)="finish()">
-          Cobrar y terminar
-        </button>
-      </div>
+  <dialog
+    appModal
+    class="dialog"
+    aria-labelledby="chargeTitle"
+    [modalBusy]="saving"
+    (dismissed)="selected = null"
+  >
+    <h2 id="chargeTitle">Terminar {{ selected.equipos?.nombre || 'equipo' }}</h2>
+    <p>
+      Tiempo de uso: {{ Math.round(finishMinutes) }} min · Q{{ cost(finishMinutes).toFixed(2) }}
+    </p>
+    <label for="cPages">Hojas impresas (Q{{ pageRate.toFixed(2) }} cada una)</label
+    ><input id="cPages" autofocus type="number" min="0" step="1" [(ngModel)]="pages" />
+    <div class="total">
+      <b>Q{{ total.toFixed(2) }}</b
+      ><span>Total a cobrar</span>
     </div>
-  </div>
+    <div class="buttons">
+      <button class="btn" type="button" [disabled]="saving" (click)="selected = null">
+        Cancelar</button
+      ><button class="btn primary" type="button" [disabled]="saving" (click)="finish()">
+        Cobrar y terminar
+      </button>
+    </div>
+  </dialog>
 }

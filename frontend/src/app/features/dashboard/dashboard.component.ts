@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { AppData, Product, Movement } from '../../core/data/inventory-data.service';
 
 @Component({
@@ -8,6 +8,7 @@ import { AppData, Product, Movement } from '../../core/data/inventory-data.servi
 })
 export class DashboardComponent {
   @Input({ required: true }) data!: AppData;
+  @Output() readonly restock = new EventEmitter<number>();
   readonly currency = new Intl.NumberFormat('es-GT', { style: 'currency', currency: 'GTQ' });
 
   get units(): number {

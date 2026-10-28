@@ -1,4 +1,13 @@
-import { Component, effect, HostListener, inject, signal } from '@angular/core';
+import {
+  afterNextRender,
+  Component,
+  effect,
+  HostListener,
+  inject,
+  Injector,
+  signal,
+  ViewChild,
+} from '@angular/core';
 import { AuthService } from '../core/auth/auth.service';
 import { LoginComponent } from '../features/login/login.component';
 import { InventoryDataService, AppData } from '../core/data/inventory-data.service';
@@ -27,33 +36,57 @@ type Tab = (typeof TABS)[number];
 export class AppShellComponent {
   protected readonly auth = inject(AuthService);
   private readonly dataService = inject(InventoryDataService);
+  private readonly injector = inject(Injector);
   readonly appData = signal<AppData | null>(null);
   readonly dataLoading = signal(false);
   readonly dataError = signal('');
   readonly activeTab = signal<Tab>(this.readTab());
   readonly themeLabel = signal('Modo oscuro');
+  private loadRevision = 0;
+  readonly reloadData = () => this.loadData();
+  @ViewChild(MovementsComponent) private movements?: MovementsComponent;
+
+  openMovement(productId: number, type?: 'entrada' | 'salida'): void {
+    if (!this.movements) return;
+    this.movements.selectProduct(productId, type ?? this.movements.type);
+    this.selectTab('movimientos');
+    afterNextRender(() => this.movements?.focusQuantity(), { injector: this.injector });
+  }
 
   constructor() {
     if (window.matchMedia?.('(prefers-color-scheme: dark)').matches)
       this.themeLabel.set('Modo claro');
     effect(() => {
-      if (this.auth.currentUser()) void this.loadData();
-      else this.appData.set(null);
+      if (this.auth.currentUser()) {
+        this.appData.set(null);
+        void this.loadData();
+      } else {
+        this.loadRevision++;
+        this.appData.set(null);
+        this.dataError.set('');
+        this.dataLoading.set(false);
+      }
     });
   }
 
   async loadData(): Promise<void> {
+    const user = this.auth.currentUser();
+    const revision = ++this.loadRevision;
+    if (!user) return;
     this.dataLoading.set(true);
     this.dataError.set('');
     try {
-      this.appData.set(await this.dataService.loadAll());
+      const data = await this.dataService.loadAll();
+      if (revision === this.loadRevision && this.auth.currentUser()?.id === user.id)
+        this.appData.set(data);
     } catch (error) {
+      if (revision !== this.loadRevision || this.auth.currentUser()?.id !== user.id) return;
       this.appData.set(null);
       this.dataError.set(
         error instanceof Error ? error.message : 'No se pudieron cargar los datos.',
       );
     } finally {
-      this.dataLoading.set(false);
+      if (revision === this.loadRevision) this.dataLoading.set(false);
     }
   }
 

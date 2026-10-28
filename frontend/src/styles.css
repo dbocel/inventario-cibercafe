@@ -17,6 +17,24 @@
   --warn-bg: #fff1bf;
   --grid: rgba(31, 63, 191, 0.07);
 }
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #141821;
+  --surface: #1d2330;
+  --ink: #eef1f6;
+  --muted: #9aa5b8;
+  --line: #2e3648;
+  --blue: #7f97ff;
+  --blue-ink: #10162b;
+  --hi: #ffe14d;
+  --hi-ink: #3a3000;
+  --in: #5fd6a0;
+  --in-bg: #12382a;
+  --out: #ff8f86;
+  --out-bg: #40191a;
+  --warn-bg: #3d3410;
+  --grid: rgba(127, 151, 255, 0.08);
+}
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
     color-scheme: dark;
