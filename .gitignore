@@ -4,3 +4,6 @@ plan de implementacion/*.csv
 
 # Temporales de Excel
 ~$*
+
+# Worktrees aislados usados para desarrollo
+.worktrees/
