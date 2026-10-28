@@ -1,0 +1,71 @@
+.panel {
+  background: var(--surface);
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+.toolbar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+input,
+select {
+  background: var(--bg);
+  border: 1.5px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+.toolbar input {
+  flex: 1;
+  min-width: 180px;
+}
+.btn {
+  border: 1.5px solid var(--ink);
+  background: var(--surface);
+  padding: 8px 14px;
+  border-radius: 8px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.tablewrap {
+  overflow-x: auto;
+}
+table {
+  width: 100%;
+  min-width: 650px;
+  border-collapse: collapse;
+}
+th,
+td {
+  padding: 9px 7px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+.num {
+  text-align: right;
+}
+.pill {
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 12px;
+}
+.in {
+  color: var(--in);
+  background: var(--in-bg);
+}
+.out {
+  color: var(--out);
+  background: var(--out-bg);
+}
+.empty {
+  color: var(--muted);
+  text-align: center;
+  padding: 18px;
+}
+.message {
+  color: var(--muted);
+}

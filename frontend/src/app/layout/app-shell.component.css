@@ -85,6 +85,9 @@ nav button[aria-selected='true'] {
   color: var(--muted);
   margin: 0;
 }
+.error {
+  color: var(--out);
+}
 .rates {
   margin-top: 12px;
   padding: 10px;

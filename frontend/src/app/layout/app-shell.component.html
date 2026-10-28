@@ -10,9 +10,6 @@
         <button class="btn" id="btnTheme" type="button" (click)="toggleTheme()">
           {{ themeLabel() }}
         </button>
-        @if (auth.currentRole() === 'admin') {
-          <button class="btn primary" id="btnNew" type="button">Nuevo producto</button>
-        }
       </div>
     </header>
     <nav role="tablist" aria-label="Secciones">
@@ -64,14 +61,26 @@
     </nav>
     <section id="tab-resumen" [hidden]="activeTab() !== 'resumen'">
       <div class="feature-slot" data-feature="resumen">
-        <h2>Resumen</h2>
-        <p>Panel de resumen de inventario y actividad.</p>
+        @if (appData(); as data) {
+          <app-dashboard [data]="data" />
+        } @else if (dataLoading()) {
+          <p role="status">Cargando datos…</p>
+        } @else {
+          <p class="error" role="alert">{{ dataError() || 'No hay datos cargados.' }}</p>
+          <button class="btn" type="button" (click)="loadData()">Reintentar</button>
+        }
       </div>
     </section>
     <section id="tab-inventario" [hidden]="activeTab() !== 'inventario'">
       <div class="feature-slot" data-feature="inventario">
-        <h2>Inventario</h2>
-        <p>Catálogo y existencias.</p>
+        @if (appData(); as data) {
+          <app-inventory [data]="data" (refresh)="loadData()" />
+        } @else if (dataLoading()) {
+          <p role="status">Cargando datos…</p>
+        } @else {
+          <p class="error" role="alert">{{ dataError() || 'No hay datos cargados.' }}</p>
+          <button class="btn" type="button" (click)="loadData()">Reintentar</button>
+        }
       </div>
     </section>
     <section id="tab-movimientos" [hidden]="activeTab() !== 'movimientos'">
@@ -91,8 +100,14 @@
     </section>
     <section id="tab-historial" [hidden]="activeTab() !== 'historial'">
       <div class="feature-slot" data-feature="historial">
-        <h2>Historial</h2>
-        <p>Movimientos y sesiones registrados.</p>
+        @if (appData(); as data) {
+          <app-history [data]="data" />
+        } @else if (dataLoading()) {
+          <p role="status">Cargando datos…</p>
+        } @else {
+          <p class="error" role="alert">{{ dataError() || 'No hay datos cargados.' }}</p>
+          <button class="btn" type="button" (click)="loadData()">Reintentar</button>
+        }
       </div>
     </section>
   </div>

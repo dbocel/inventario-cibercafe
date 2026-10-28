@@ -1,0 +1,58 @@
+<div class="panel">
+  <div class="toolbar">
+    <select aria-label="Filtrar por tipo" [(ngModel)]="type">
+      <option value="">Entradas y salidas</option>
+      <option value="entrada">Solo entradas</option>
+      <option value="salida">Solo salidas</option>
+    </select>
+    <input
+      type="search"
+      placeholder="Buscar en el historial"
+      aria-label="Buscar en el historial"
+      [(ngModel)]="search"
+    />
+    <button class="btn" type="button" (click)="downloadCsv()">Descargar CSV</button>
+  </div>
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Tipo</th>
+          <th>Producto</th>
+          <th class="num">Cantidad</th>
+          <th>Motivo</th>
+          <th>Referencia</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (movement of filteredMovements; track movement.id) {
+          <tr>
+            <td>{{ formatDate(movement.creado_en) }}</td>
+            <td>
+              <span
+                class="pill"
+                [class.in]="movement.tipo === 'entrada'"
+                [class.out]="movement.tipo === 'salida'"
+                >{{ movement.tipo === 'entrada' ? 'Entrada' : 'Salida' }}</span
+              >
+            </td>
+            <td>{{ movement.productos?.nombre || '—' }}</td>
+            <td class="num">
+              {{ movement.tipo === 'entrada' ? '+' : '−' }}{{ movement.cantidad }}
+            </td>
+            <td>{{ movement.motivo }}</td>
+            <td>{{ movement.referencia || '—' }}</td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="6" class="empty">No hay movimientos con ese filtro.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  @if (message) {
+    <p class="message" role="status">{{ message }}</p>
+  }
+</div>

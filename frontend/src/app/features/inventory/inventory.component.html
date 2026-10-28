@@ -1,0 +1,132 @@
+<div class="panel">
+  <div class="toolbar">
+    <input
+      type="search"
+      placeholder="Buscar producto o código"
+      aria-label="Buscar producto"
+      [(ngModel)]="search"
+    />
+    <select aria-label="Filtrar por categoría" [(ngModel)]="category">
+      <option value="">Todas las categorías</option>
+      @for (item of data.categories; track item.id) {
+        <option [value]="item.nombre">{{ item.nombre }}</option>
+      }
+    </select>
+    <select aria-label="Filtrar por estado" [(ngModel)]="state">
+      <option value="">Todos los estados</option>
+      <option value="low">Stock bajo</option>
+      <option value="zero">Agotados</option>
+    </select>
+    <button class="btn" type="button" (click)="downloadCsv()">Descargar CSV</button>
+    @if (isAdmin()) {
+      <button class="btn primary" type="button" (click)="openNewProduct()">Nuevo producto</button>
+    }
+  </div>
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Producto</th>
+          <th>Categoría</th>
+          <th class="num">Stock</th>
+          <th class="num">Mínimo</th>
+          <th class="num">Precio</th>
+          <th>Estado</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (product of filteredProducts; track product.id) {
+          <tr>
+            <td>{{ product.codigo }}</td>
+            <td>{{ product.nombre }}</td>
+            <td>{{ product.categoria || '' }}</td>
+            <td class="num">
+              <b>{{ product.stock }}</b>
+            </td>
+            <td class="num">{{ product.stock_minimo }}</td>
+            <td class="num">Q{{ product.precio.toFixed(2) }}</td>
+            <td>
+              <span
+                class="pill"
+                [class.zero]="product.stock === 0"
+                [class.low]="product.stock > 0 && product.stock <= product.stock_minimo"
+                [class.ok]="product.stock > product.stock_minimo"
+                >{{ stateLabel(product) }}</span
+              >
+            </td>
+            <td>
+              <button
+                class="btn small"
+                type="button"
+                (click)="quickSale(product)"
+                [disabled]="product.stock < 1"
+              >
+                Venta rápida
+              </button>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="8" class="empty">Ningún producto coincide con la búsqueda.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  @if (message) {
+    <p class="message" role="status">{{ message }}</p>
+  }
+</div>
+@if (dialogOpen) {
+  <div class="backdrop">
+    <form class="dialog form" (ngSubmit)="saveProduct()">
+      <h2>Nuevo producto</h2>
+      <label>Nombre<input name="nombre" required [(ngModel)]="draft.nombre" /></label>
+      <div class="row2">
+        <label
+          >Categoría<select name="categoria" [(ngModel)]="draft.categoria_id">
+            @for (item of data.categories; track item.id) {
+              <option [ngValue]="item.id">{{ item.nombre }}</option>
+            }
+          </select></label
+        ><label
+          >Código<input name="codigo" placeholder="Automático" [(ngModel)]="draft.codigo"
+        /></label>
+      </div>
+      <div class="row2">
+        <label
+          >Stock inicial<input
+            name="stock"
+            type="number"
+            min="0"
+            step="1"
+            [(ngModel)]="draft.initialStock" /></label
+        ><label
+          >Stock mínimo<input
+            name="minimo"
+            type="number"
+            min="0"
+            step="1"
+            [(ngModel)]="draft.stock_minimo"
+        /></label>
+      </div>
+      <label
+        >Precio de venta (Q)<input
+          name="precio"
+          type="number"
+          min="0"
+          step="0.25"
+          [(ngModel)]="draft.precio"
+      /></label>
+      @if (message) {
+        <p class="message" role="alert">{{ message }}</p>
+      }
+      <div class="actions">
+        <button class="btn" type="button" (click)="dialogOpen = false">Cancelar</button
+        ><button class="btn primary" type="submit" [disabled]="saving">Guardar producto</button>
+      </div>
+    </form>
+  </div>
+}

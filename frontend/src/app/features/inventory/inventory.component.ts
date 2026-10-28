@@ -1,0 +1,147 @@
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { AuthService } from '../../core/auth/auth.service';
+import {
+  AppData,
+  InventoryDataService,
+  NewProductInput,
+  Product,
+} from '../../core/data/inventory-data.service';
+
+@Component({
+  selector: 'app-inventory',
+  imports: [FormsModule],
+  templateUrl: './inventory.component.html',
+  styleUrl: './inventory.component.css',
+})
+export class InventoryComponent {
+  @Input({ required: true }) data!: AppData;
+  @Output() readonly refresh = new EventEmitter<void>();
+  private readonly auth = inject(AuthService);
+  private readonly dataService = inject(InventoryDataService);
+  readonly isAdmin = () => this.auth.currentRole() === 'admin';
+  search = '';
+  category = '';
+  state = '';
+  dialogOpen = false;
+  saving = false;
+  message = '';
+  draft: NewProductInput = {
+    nombre: '',
+    codigo: '',
+    categoria_id: 0,
+    stock_minimo: 5,
+    precio: 0,
+    initialStock: 0,
+  };
+
+  get filteredProducts(): Product[] {
+    const search = this.search.trim().toLocaleLowerCase('es-GT');
+    return this.data.products.filter((product) => {
+      if (this.category && product.categoria !== this.category) return false;
+      if (this.state === 'low' && !(product.stock > 0 && product.stock <= product.stock_minimo))
+        return false;
+      if (this.state === 'zero' && product.stock !== 0) return false;
+      return (
+        !search ||
+        product.nombre.toLocaleLowerCase('es-GT').includes(search) ||
+        product.codigo.toLocaleLowerCase('es-GT').includes(search)
+      );
+    });
+  }
+
+  openNewProduct(): void {
+    this.draft = {
+      nombre: '',
+      codigo: this.nextCode(),
+      categoria_id: this.data.categories[0]?.id ?? 0,
+      stock_minimo: 5,
+      precio: 0,
+      initialStock: 0,
+    };
+    this.message = '';
+    this.dialogOpen = true;
+  }
+
+  async saveProduct(): Promise<void> {
+    if (!this.isAdmin() || this.saving) return;
+    const input = {
+      ...this.draft,
+      nombre: this.draft.nombre.trim(),
+      codigo: this.draft.codigo.trim(),
+    };
+    if (!input.nombre) {
+      this.message = 'Escriba el nombre del producto.';
+      return;
+    }
+    if (!input.codigo) input.codigo = this.nextCode();
+    if (this.data.products.some((product) => product.codigo === input.codigo)) {
+      this.message = 'Ese código ya existe. Use otro.';
+      return;
+    }
+    this.saving = true;
+    this.message = '';
+    try {
+      await this.dataService.createProduct(input);
+      this.dialogOpen = false;
+      this.refresh.emit();
+    } catch (error) {
+      this.message = error instanceof Error ? error.message : 'No se pudo guardar el producto.';
+    } finally {
+      this.saving = false;
+    }
+  }
+
+  async quickSale(product: Product): Promise<void> {
+    if (product.stock < 1) return;
+    try {
+      await this.dataService.registerMovement(product.id, 'salida', 1, 'Venta', 'Venta rápida');
+      this.message = `Venta registrada: ${product.nombre}`;
+      this.refresh.emit();
+    } catch (error) {
+      this.message = error instanceof Error ? error.message : 'No se pudo guardar la venta.';
+    }
+  }
+
+  async downloadCsv(): Promise<void> {
+    const rows = [['Código', 'Producto', 'Categoría', 'Stock', 'Mínimo', 'Precio']].concat(
+      this.filteredProducts.map((product) => [
+        product.codigo,
+        product.nombre,
+        product.categoria ?? '',
+        String(product.stock),
+        String(product.stock_minimo),
+        String(product.precio),
+      ]),
+    );
+    const csv = rows
+      .map((row) => row.map((cell) => `"${cell.replaceAll('"', '""')}"`).join(','))
+      .join('\n');
+    try {
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+      link.download = 'inventario.csv';
+      link.click();
+    } catch {
+      /* Algunos entornos bloquean las descargas. */
+    }
+    this.message =
+      'Si no se descargó, este entorno bloquea descargas; en el sistema real sí funcionará';
+  }
+
+  stateLabel(product: Product): string {
+    return product.stock === 0
+      ? 'Agotado'
+      : product.stock <= product.stock_minimo
+        ? 'Stock bajo'
+        : 'Disponible';
+  }
+
+  private nextCode(): string {
+    const max = this.data.products.reduce((current, product) => {
+      const match = /^P(\d+)$/.exec(product.codigo || '');
+      return match ? Math.max(current, Number(match[1])) : current;
+    }, 0);
+    return `P${String(max + 1).padStart(4, '0')}`;
+  }
+}
