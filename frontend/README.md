@@ -36,7 +36,31 @@ URL del sitio: <https://dbocel.github.io/inventario-cibercafe/>. La publicación
    npm.cmd run build
    ```
 
-2. Crear o actualizar una rama huérfana local `gh-pages` y publicar en su raíz **únicamente el contenido** de `frontend/dist/frontend/browser/` (no la carpeta que lo contiene), junto con un archivo vacío `.nojekyll`. No incluir `frontend/dist/frontend/3rdpartylicenses.txt`, source, dependencias u otros archivos del repositorio. Revisar el árbol antes de confirmar y publicar la rama.
+2. Desde la raíz del repositorio, crea el worktree huérfano solo la primera vez:
+
+   ```powershell
+   git worktree add --orphan ..\gh-pages gh-pages
+   ```
+
+   Para una actualización posterior, reutiliza el worktree; antes de copiar el nuevo build, elimina sus archivos versionados:
+
+   ```powershell
+   git -C ..\gh-pages rm -r -- .
+   ```
+
+   En ambos casos, copia y publica únicamente el contenido de browser:
+
+   ```powershell
+   Get-ChildItem .\frontend\dist\frontend\browser -Force | Copy-Item -Destination ..\gh-pages -Recurse -Force
+   git -C ..\gh-pages add -A
+   git -C ..\gh-pages status --short
+   git -C ..\gh-pages diff --cached --stat
+   git -C ..\gh-pages commit -m "Deploy GitHub Pages"
+   git -C ..\gh-pages push -u origin gh-pages
+   ```
+
+   La copia coloca en la raíz **solo el contenido** de `frontend/dist/frontend/browser/`, incluido el `.nojekyll` vacío; no copiar `frontend/dist/frontend/3rdpartylicenses.txt`, source, dependencias ni otros archivos. Revisar el árbol preparado antes del commit/push. Cada actualización requiere repetir manualmente build, copia, commit y push.
+
 3. En GitHub, configurar **Settings → Pages → Build and deployment → Deploy from a branch → `gh-pages` → `/(root)`**.
 
 El `index.html` legado de la raíz de la rama principal se conserva intacto y no forma parte del sitio publicado. La build usa `<base href="./">` para la subruta del proyecto.
