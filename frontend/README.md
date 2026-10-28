@@ -24,13 +24,12 @@ npm.cmd run build
 
 Las pruebas usan el runner Angular/Vitest. La build queda en `frontend/dist/frontend/`; los archivos estáticos publicables están en **`frontend/dist/frontend/browser/`** (`index.html`, bundles JS/CSS y favicon). `3rdpartylicenses.txt` queda un nivel arriba, en `frontend/dist/frontend/`. `src/index.html` usa `<base href="./">` y la navegación existente por fragmentos (`#resumen`, `#inventario`, `#movimientos`, `#cibercafe`, `#historial`), por lo que los assets son relativos y la app puede alojarse en una subruta de GitHub Pages.
 
-## Handoff manual a GitHub Pages (no publicado)
+## GitHub Pages (publicación autorizada, pendiente de Task 2)
 
-La salida aún no está publicada y el `index.html` de la raíz se conserva como referencia funcional. Después de la verificación del dueño y de una aprobación separada para publicar:
+El workflow **Deploy to GitHub Pages** (`.github/workflows/deploy-pages.yml`) se ejecuta al hacer push a `main` o manualmente con `workflow_dispatch`. Primero ejecuta `npm ci`, `npm test -- --watch=false` y `npm run build` en `frontend/` con Node.js 24; solo si todo pasa, publica como artefacto el contenido estático de `frontend/dist/frontend/browser/`. El `index.html` de la raíz se conserva como referencia y no forma parte del despliegue.
 
-1. Ejecute `npm.cmd ci` y `npm.cmd run build` desde `frontend/`.
-2. Configure Pages para servir el contenido de `frontend/dist/frontend/browser/` desde la raíz del sitio del proyecto. Si se usa una rama de publicación, copie **el contenido** de ese directorio (no el directorio contenedor) al directorio que Pages sirve; puede incluir `frontend/dist/frontend/3rdpartylicenses.txt` si desea publicar las licencias. No se requiere workflow automático.
-3. Compruebe la URL de proyecto bajo su subruta y los cinco fragmentos; no configure el sitio como dominio raíz sin revisar la base de assets.
-4. Publique solo la salida estática. Nunca incluya `Libro1.xlsx`, CSV reales, credenciales, PAT, claves `service_role` ni harnesses de prueba.
+URL del sitio: <https://dbocel.github.io/inventario-cibercafe/>. La build conserva `<base href="./">` para servir correctamente bajo la subruta del proyecto.
 
-No se configura ni ejecuta despliegue con este README. Las políticas RLS de Supabase deben seguir activas; los movimientos de inventario solo se registran mediante `registrar_movimiento`.
+**Handoff de Supabase Auth:** el dueño debe agregar `https://dbocel.github.io/inventario-cibercafe/` a la allowlist de URLs de redirección de Supabase si los flujos de autenticación usan redirecciones al sitio. No cambiar la configuración de Supabase como parte de este despliegue.
+
+No incluya `Libro1.xlsx`, CSV reales, `Inventario.pdf`, credenciales, PAT, claves `service_role` ni harnesses de prueba en el sitio. Las políticas RLS de Supabase deben seguir activas; los movimientos de inventario solo se registran mediante `registrar_movimiento`.
