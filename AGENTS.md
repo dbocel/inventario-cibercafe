@@ -2,7 +2,7 @@
 
 ## Repo y arquitectura
 
-Sistema de inventario para cibercafé + papelería Internet K-ROL. La nueva interfaz Angular está en `frontend/`; el `index.html` de la raíz es la app estática anterior y se conserva como referencia hasta que el dueño verifique Angular en un navegador real. No eliminarlo ni reemplazarlo como parte de tareas de implementación sin aprobación explícita. No publicar desde este worktree.
+Sistema de inventario para cibercafé + papelería Internet K-ROL. La nueva interfaz Angular está en `frontend/`; el `index.html` de la raíz es la app estática anterior y se conserva como referencia hasta que el dueño verifique Angular en un navegador real. No eliminarlo ni reemplazarlo como parte de tareas de implementación sin aprobación explícita. No publicar desde este worktree salvo autorización explícita para una tarea de publicación; esta tarea documenta el procedimiento, pero no publica.
 
 - `frontend/src/app/core/auth/`: autenticación Supabase, restauración de sesión y rol desde `perfiles.rol`.
 - `frontend/src/app/core/data/`: lecturas y escrituras de inventario, movimientos y sesiones.
@@ -43,4 +43,4 @@ El servidor local abre `http://localhost:4200/`. Los tests se ejecutan con Angul
 
 ## Handoff GitHub Pages
 
-No hay publicación ni workflow automático configurado. Solo después de la verificación del dueño y aprobación aparte, compilar y servir **el contenido** de `frontend/dist/frontend/browser/` como raíz del sitio del proyecto Pages (la base `./` permite subruta). Publicar únicamente artefactos estáticos permitidos; conservar el `index.html` raíz hasta dicha verificación. Ver `frontend/README.md` para pasos de handoff.
+La URL del sitio es `https://dbocel.github.io/inventario-cibercafe/`. No hay workflow ni publicación automática. La publicación aprobada se hace manualmente en una rama huérfana `gh-pages`: ejecutar `npm.cmd ci`, `npm.cmd test -- --watch=false` y `npm.cmd run build` desde `frontend/`; publicar en la raíz de esa rama únicamente el contenido de `frontend/dist/frontend/browser/` junto con un `.nojekyll` vacío. No incluir la carpeta `browser` como subcarpeta, `3rdpartylicenses.txt`, código fuente, dependencias ni archivos ajenos al artefacto. En **Settings → Pages → Build and deployment**, elegir **Deploy from a branch → `gh-pages` → `/(root)`**. Cada cambio futuro requiere repetir manualmente build y publicación. El `index.html` legado de la raíz de la rama principal se conserva intacto. El dueño debe agregar manualmente `https://dbocel.github.io/inventario-cibercafe/` a la allowlist de URLs de redirección de Supabase cuando Auth necesite redirigir al sitio. No modificar Supabase/Auth/RLS, ni incluir datos sensibles; la clave anon pública depende de RLS activa.
