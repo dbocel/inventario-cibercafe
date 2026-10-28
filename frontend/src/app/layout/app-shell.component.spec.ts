@@ -65,6 +65,9 @@ describe('AppShellComponent', () => {
   it('keeps the reference navigation labels and signs out', async () => {
     const fixture = TestBed.createComponent(AppShellComponent);
     fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('h1').textContent).toContain(
+      'Cibercafé y Papelería K-ROL',
+    );
     const labels = Array.from(fixture.nativeElement.querySelectorAll('[role="tab"]')).map(
       (button: any) => button.textContent.trim(),
     );
