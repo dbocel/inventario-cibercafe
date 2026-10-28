@@ -39,7 +39,7 @@ URL del sitio: <https://dbocel.github.io/inventario-cibercafe/>. La publicación
 2. Desde la raíz del repositorio, crea el worktree huérfano solo la primera vez:
 
    ```powershell
-   git worktree add --orphan ..\gh-pages gh-pages
+   git worktree add --orphan gh-pages ..\gh-pages
    ```
 
    Para una actualización posterior, reutiliza el worktree; antes de copiar el nuevo build, elimina sus archivos versionados:
