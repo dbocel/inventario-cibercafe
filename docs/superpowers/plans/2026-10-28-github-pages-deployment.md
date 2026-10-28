@@ -45,20 +45,33 @@
 - [ ] Run local test/build and verify `frontend/dist/frontend/browser/index.html` references relative assets.
 - [ ] Confirm the workflow artifact path excludes source, real data, node_modules, and the root legacy app.
 
-### Task 2: Connect the existing repository and publish without overwriting remote history
+### Task 2: Connect and integrate remote history without publishing
 
 **Files:**
 - Git configuration: add `origin` as `https://github.com/dbocel/inventario-cibercafe.git`.
 - Git history: integrate remote `main` into local `master` without force-push; preserve remote README and current root `index.html`.
-- GitHub Pages: configure source as GitHub Actions only if the repository setting is required for the workflow.
 
 **Interfaces:**
-- Push local `master` to remote `main` after an unrelated-history merge (remote starts at `f155a944`); never use `--force`.
+- Add `origin` and merge `origin/main` into the feature branch with an unrelated-history merge (remote starts at `f155a944`); never use `--force`.
 - Deployment URL: `https://dbocel.github.io/inventario-cibercafe/`.
 
 - [ ] Fetch and inspect remote `main`; resolve only expected content conflicts while preserving both histories and the remote README.
+- [ ] Verify merge result and root `index.html`/README contents; do not push in this task.
+
+### Task 3: Publish after the workflow and merged history are reviewed
+
+**Files:**
+- Remote operation only: push reviewed feature branch to remote `main`, then fast-forward local `master` to the published commit.
+- GitHub Pages repository setting: select GitHub Actions as the Pages source only if required by the workflow.
+- No application files beyond Tasks 1–2 unless a workflow validation reveals a defect.
+
+**Interfaces:**
+- The reviewed feature branch contains both local project history and `origin/main`; use `git push origin HEAD:main` (fast-forward only).
+- If the remote rejects the push due to branch protection or authentication, stop and report; do not force-push or bypass protection.
+
 - [ ] Run final tests/build/audit on the integrated tree; stage only deployment workflow, README, and explicitly intended merge files—exclude `Inventario.pdf` and the uncommitted Angular analytics change.
-- [ ] Push to `origin main`; verify the GitHub Actions workflow completes and the Pages URL serves the Angular app, all assets, and five hash tabs.
+- [ ] Push the reviewed branch to `origin main`; verify the GitHub Actions workflow completes and the Pages URL serves Angular, all assets, and five hash tabs.
+- [ ] Fast-forward local `master` to the published commit without staging unrelated working-tree files.
 - [ ] Provide the owner the Supabase Auth URL to allowlist: `https://dbocel.github.io/inventario-cibercafe/`; if dashboard access is not available, leave this as an explicit manual step rather than altering auth settings through an unverified credential.
 
 ## Publication boundary
