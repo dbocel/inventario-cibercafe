@@ -40,5 +40,32 @@ Run from `frontend/` unless noted:
 
 ## Concerns
 
-- Full npm audit reports one low and one high severity issue in development/build tooling (Angular build/Vite); production dependency audit is clean. The audit's available suggested Angular build version is a downgrade from the generated current CLI version, so it was not applied without validating compatibility.
+- At the initial implementation commit, full npm audit reported one low and one high severity issue in development/build tooling (Angular build/Vite); production dependency audit was clean. Resolution and post-fix audit results are recorded in the follow-up below.
 - `npm install` warned that several optional dependency install scripts were not yet approved by this npm version; build and tests nevertheless completed successfully.
+
+## Follow-up — 2026-10-28: resolve Vite audit finding
+
+### Changes
+
+- Root cause confirmed: `@angular/build@22.2.4` declares an exact dependency on vulnerable `vite@8.3.0`; Angular 22.2.4 was otherwise aligned with the rest of the Angular CLI/framework packages.
+- Tried the smallest lockfile operation first: `npm.cmd dedupe`. It did not resolve the finding; it unified Vite to `8.3.0` (still within the vulnerable range), and audit continued to report two findings.
+- Added a scoped npm override in `frontend/package.json` for only `@angular/build`'s Vite dependency, selecting patched `vite@8.3.5`. `npm.cmd install` updated the lockfile. No Angular package versions or app behavior changed.
+- The verified dependency tree retains `@angular/build@22.2.4`, `@angular/cli@22.2.4`, and Angular framework `22.2.3`, with one resolved Vite `8.3.5` marked `overridden`; there is no vulnerable `8.3.0` copy.
+
+### TDD applicability
+
+TDD was not applicable to this dependency-resolution-only change: no application code or behavior changed. The dependency graph was directly verified, then the requested unit tests and production build were run as compatibility checks.
+
+### Verification
+
+From `frontend/` after applying the override:
+
+- `npm.cmd ls @angular/build @angular/cli @angular/core vite --all` — confirms the existing Angular versions remain intact and all Vite edges resolve to `8.3.5`.
+- `npm.cmd test -- --watch=false` — exit 0; 2 test files and 3 tests passed.
+- `npm.cmd run build` — exit 0; static production bundle emitted under `frontend/dist/frontend`.
+- `npm.cmd audit --json` — exit 0; `vulnerabilities: {}` and totals `low: 0`, `moderate: 0`, `high: 0`, `critical: 0`, `total: 0`.
+
+### Remaining concerns
+
+- The scoped override intentionally replaces the exact Vite version pinned by `@angular/build`; the patched Vite minor/patch line satisfies Angular's other Vite peer constraints, and both the Angular tests and production build pass. Keep the override until a later Angular build release updates its own Vite pin, then re-check compatibility and audit before removing it.
+- NPM continues to print optional install-script approval notices; they do not block installation, build, or tests.
