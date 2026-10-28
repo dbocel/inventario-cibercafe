@@ -1,63 +1,46 @@
 # AGENTS.md
 
-## Qué es este repo
+## Repo y arquitectura
 
-Sistema de inventario para cibercafé + papelería ("Internet K-ROL"), en español (es-GT, precios en Quetzales "Q"). `index.html` es una app estática (HTML + JS vanilla, sin framework ni build) **conectada a Supabase** (PostgreSQL + Auth + RLS). Fases 0–4 del plan ejecutadas; pendientes: Fase 5 (GitHub Pages), Fase 6 (mejoras) y el conteo físico de datos.
+Sistema de inventario para cibercafé + papelería Internet K-ROL. La nueva interfaz Angular está en `frontend/`; el `index.html` de la raíz es la app estática anterior y se conserva como referencia hasta que el dueño verifique Angular en un navegador real. No eliminarlo ni reemplazarlo como parte de tareas de implementación sin aprobación explícita. No publicar desde este worktree.
 
-No hay `package.json`, lint, tests ni CI. Verificación: `node --check` del script + harness jsdom (ver Testing).
+- `frontend/src/app/core/auth/`: autenticación Supabase, restauración de sesión y rol desde `perfiles.rol`.
+- `frontend/src/app/core/data/`: lecturas y escrituras de inventario, movimientos y sesiones.
+- `frontend/src/app/features/`: resumen, inventario, movimientos, cibercafé, historial e inicio de sesión.
+- `frontend/src/app/layout/`: shell, navegación por fragmentos y controles de tema.
+- `frontend/src/environments/environment.ts`: solo URL de Supabase y clave pública anon existente.
+- `frontend/dist/frontend/browser/`: archivos estáticos publicables de producción; regenerable, no editar a mano. `3rdpartylicenses.txt` queda en `frontend/dist/frontend/`.
+- `index.html`, `plan de implementacion/`, y `Libro1.xlsx`: referencia y datos del sistema legado. El Excel y los CSV reales son sensibles, están ignorados y nunca deben agregarse a la app Angular, commits ni build.
 
-## Estructura
+Toda la interfaz y los mensajes al usuario van en español (es-GT), con precios en quetzales (Q). Seguir el estilo Angular/TypeScript existente.
 
-- `index.html` — toda la app. Pestañas: resumen, inventario, movimientos, cibercafe, historial (`data-tab` / `#tab-*`, sincronizados en `showTab()`).
-  - `syncAll()` consulta 6 tablas en paralelo y re-renderiza; las escrituras van por RPC `registrar_movimiento` o inserts REST, luego `syncAll()`.
-  - Flujo de acceso: `#loginView` bloquea todo hasta `signInWithPassword`; `afterLogin()` lee `perfiles.rol` y aplica clase `no-admin` en `<body>` (oculta "Nuevo producto" y las tarifas del cibercafé).
-- `Libro1.xlsx` — datos reales del negocio (314 productos, 51 categorías, 24 activos fijos). **Sensible: está en `.gitignore`, no subirlo jamás.** Lo mismo para `plan de implementacion/*.csv`.
-- `plan de implementacion/`:
-  - `PLAN_inventario_funcional.md` — fuente de verdad del roadmap (léelo antes de tocar arquitectura). Sus números ya fueron verificados: 314 productos / 51 categorías / 32.996 unidades / Q38.962 activos ✓. Los Q29.114.60 de valor al costo del plan están desactualizados: la corrección de la fila 317 (costo 40→4) da Q28.502,60.
-  - `migrar_excel.py` — genera los CSV desde el Excel (salida a `plan de implementacion/`).
-  - `fase1_crear_base.sql`, `fase4_seguridad.sql` — SQL ejecutado en Supabase (reutilizable si se recrea el proyecto).
-- `.gitignore` — Excel + CSVs de datos. Los CSV con costos son sensibles igual que el Excel.
-
-## Comandos
-
-```bash
-# Regenerar CSV tras corregir el Excel (Python 3.12 instalado con winget + openpyxl)
-python "plan de implementacion/migrar_excel.py" Libro1.xlsx
-# Esperado: 314 productos | 51 categorías | 24 activos | 12 avisos
-```
+## Comandos (PowerShell, desde `frontend/`)
 
 ```powershell
-# Chequeo de sintaxis del JS de index.html (extraer el último bloque <script> primero)
-node --check app_extract.js
+npm.cmd ci
+npm.cmd start
+npm.cmd test -- --watch=false
+npm.cmd run build
 ```
 
-## Supabase (proyecto `tvxlscokuqaztbumdgby`, región us-east-2)
+El servidor local abre `http://localhost:4200/`. Los tests se ejecutan con Angular/Vitest. La build se escribe en `frontend/dist/frontend/`; los estáticos publicables (`index.html`, JS/CSS, favicon) están en **`frontend/dist/frontend/browser/`** (ejecutando build dentro de `frontend/`); `3rdpartylicenses.txt` queda un nivel arriba. `src/index.html` usa base relativa `./`, y las pestañas son los fragmentos `#resumen`, `#inventario`, `#movimientos`, `#cibercafe` y `#historial`; verificar esos assets y enlaces bajo una subruta antes del handoff a Pages.
 
-- URL: `https://tvxlscokuqaztbumdgby.supabase.co`. La clave anon está embebida en `index.html` (válida **porque RLS está activo** — el plan prohíbe publicar con RLS apagado; `service_role` jamás va al repo).
-- **Usuario real:** `wendysac150@gmail.com` con rol `admin` en `perfiles` (la contraseña se entregó una sola vez en conversación; si se pierde, regenerar desde el dashboard o con `update auth.users set encrypted_password = crypt(...)`).
-- Usuarios se crean **desde el dashboard** (Authentication → Users): la Management API no tiene endpoint de creación y el `signup` con `mailer_autoconfirm` topa con rate limit de correo (429). Alternativa usada: `update auth.users set email_confirmed_at = now()`. Al crear un usuario, el trigger `on_auth_user_created` da de alta `perfiles` con rol `cajero` (promover a `admin` con un `update`).
-- **Cómo ejecutar SQL** (no hay `psql`): Management API `POST https://api.supabase.com/v1/projects/tvxlscokuqaztbumdgby/database/query` con `Authorization: Bearer <PAT>` y body `{"query": "..."}`. PAT de la cuenta del usuario (no la repitas en commits).
-- **Quirks de PowerShell 5.1 en este entorno** (costaron errores reales):
-  - `ConvertTo-Json` de un string de `Get-Content -Raw` sale como `{"value":...}` → castear `[string]$sql = ...`; enviar body como bytes UTF-8 con `ContentType "application/json; charset=utf-8"`.
-  - `Invoke-RestMethod` no tiene `-Property`; para capturar el cuerpo de un POST usar cabecera `Prefer: return=representation`.
-  - Ejecutar CLI de Supabase como `& "$env:APPDATA\npm\supabase.cmd" ...` (el `.ps1` está bloqueado por ExecutionPolicy; igual `npm.cmd`, no `npm.ps1`).
-  - `Invoke-RestMethod` aplana múltiples resultsets: devolver una sola fila `json_build_object(...)`.
-- **Diseño de seguridad (no romper):**
-  - RLS activo en las 8 tablas públicas.
-  - `movimientos` **no tiene política de INSERT para clientes**: los movimientos entran SOLO por la RPC `registrar_movimiento` (SECURITY DEFINER). Ceder aquí reintroduce el bypass de validación de stock.
-  - `activos_fijos` es solo-admin; `productos` escribe solo-admin; `sesiones` las escribe cualquier autenticado.
-  - Los cargos de cibercafé se calculan desde `sesiones.inicio`; el botón "+10 min (demo)" es estado local que no persiste (a propósito).
-  - Simplificación conocida del plan: `productos.costo` es visible para cajeros (el plan no define control a nivel de columna).
+## Supabase y límites de seguridad (no modificar como parte de la migración UI)
 
-## Testing
+- Mantener el mismo proyecto, Auth, esquema, RPC y RLS. No cambiar SQL ni conceder nuevos permisos.
+- La clave anon es pública y solo es segura con RLS activo. Nunca incorporar contraseñas, PAT, `service_role` ni credenciales de pruebas al source, tests versionados, logs, dist o commits.
+- La app lee los datos bajo la sesión autenticada y muestra fallos de perfil/carga claramente; la ocultación de controles por rol solo es UX, RLS sigue siendo la autorización real.
+- **Todos los movimientos de inventario (incluida venta rápida y stock inicial) se escriben exclusivamente mediante RPC `registrar_movimiento`.** No insertar directamente en `movimientos` ni cambiar sus políticas.
+- Productos/configuración siguen con sus permisos existentes; las sesiones de cibercafé usan columnas existentes y políticas actuales. El botón `+10 min (demo)` afecta solo estado local, nunca se persiste.
+- `productos.costo` mantiene la visibilidad permitida actualmente por el modelo; no ampliar exposición.
 
-- Harness E2E en `C:\Users\dboce\AppData\Local\Temp\opencode\fase3-test\harness3.js` (jsdom + credenciales reales en el archivo → **no commitear**): gate de login → login → lecturas → venta rápida → revert → logout. Última corrida: 18/18 PASS. Los `harness.js`/`harness2.js` de la misma carpeta son pre-RLS y ya no sirven.
-- Tras RLS, cualquier prueba REST sin JWT autenticado da 401 — es esperado.
-- Al terminar una prueba de escritura, revertir borrando el movimiento creado (el stock se deriva: se restaura solo).
+## Procedimiento de verificación / E2E
 
-## Pendientes / convenciones
+1. Ejecutar `npm.cmd test -- --watch=false` y `npm.cmd run build` en `frontend/`.
+2. Servir `frontend/dist/frontend/browser/` bajo una URL con prefijo de proyecto y verificar carga de todos los assets y los cinco fragmentos.
+3. Para E2E con Supabase real, usar solo credenciales existentes en archivos temporales fuera del repo. Antes de escribir, autenticar y revisar stock y sesiones activas; elegir producto con stock y equipo libre. No tocar sesiones existentes. Probar movimiento por RPC y borrarlo/confirmar stock restaurado; cerrar/terminar y eliminar únicamente la sesión creada por la prueba. Registrar evidencia de limpieza. Si no puede garantizarse la reversión, no hacer escrituras; informar la limitación y cubrir comportamiento con tests mock/componentes.
+4. Auditar source rastreado y `frontend/dist/frontend/` por Excel, CSV de negocio, contraseñas, PAT, service-role y harnesses con credenciales. Los archivos de pruebas live permanecen en `%LOCALAPPDATA%\Temp\opencode\fase3-test\` y nunca se copian al repo/build.
 
-- Toda la UI, comentarios y textos al usuario van en **español**. Sin tooling: seguir el estilo existente (`var`/`function`, strings concatenados, CSS custom properties para el tema).
-- Fase 5 (GitHub Pages): RLS ya activo → se puede publicar; subir solo `index.html` (+ opcional plan/SQL), nunca Excel/CSV.
-- Fase 0: quedan 12 avisos de `avisos_revision.csv` a la espera del conteo físico del local (cantidades altas y3 productos sin costo/precio). Nombres repetidos se dejaron **separados** por decisión del dueño.
-- La descarga de CSV desde `index.html` puede fallar en algunos entornos (el toast lo avisa); no es bug.
+## Handoff GitHub Pages
+
+No hay publicación ni workflow automático configurado. Solo después de la verificación del dueño y aprobación aparte, compilar y servir **el contenido** de `frontend/dist/frontend/browser/` como raíz del sitio del proyecto Pages (la base `./` permite subruta). Publicar únicamente artefactos estáticos permitidos; conservar el `index.html` raíz hasta dicha verificación. Ver `frontend/README.md` para pasos de handoff.
