@@ -9,8 +9,14 @@ export interface Product {
   categoria_id?: number;
   stock: number;
   stock_minimo: number;
-  precio: number;
+  precio: number | null;
   costo?: number;
+}
+
+export interface ProductOption {
+  id: number;
+  codigo: string;
+  nombre: string;
 }
 
 export interface Movement {
@@ -51,6 +57,7 @@ export interface Category {
 
 export interface AppData {
   products: Product[];
+  productOptions?: ProductOption[];
   movements: Movement[];
   sessions: Session[];
   equipment: Equipment[];
@@ -93,10 +100,124 @@ export class ProductStockError extends Error {
 @Injectable({ providedIn: 'root' })
 export class InventoryDataService {
   private readonly timeoutMs = 15_000;
+  private readonly cacheTtlMs = 60_000;
+  private lastData: AppData | null = null;
+  private lastAt = 0;
 
   constructor(private readonly supabase: SupabaseClientService) {}
 
+  clearCache(): void {
+    this.lastData = null;
+    this.lastAt = 0;
+  }
+
+  getCached(): AppData | null {
+    if (!this.lastData) return null;
+    if (Date.now() - this.lastAt > this.cacheTtlMs) return null;
+    return this.lastData;
+  }
+
+  setCached(data: AppData): void {
+    this.lastData = data;
+    this.lastAt = Date.now();
+  }
+
+  private async runRead(source: string, request: PromiseLike<{ data: unknown; error: unknown }>) {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      const result = await Promise.race([
+        Promise.resolve(request),
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(
+            () => reject(new Error('Tiempo agotado (15 segundos).')),
+            this.timeoutMs,
+          );
+        }),
+      ]);
+      if ((result as { error: unknown }).error) throw (result as { error: unknown }).error;
+      return ((result as { data: unknown }).data ?? []) as unknown;
+    } catch (error) {
+      throw new DataReadError(source, error);
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  }
+
+  async loadCritical(): Promise<Pick<AppData, 'productOptions' | 'categories'>> {
+    const reads: Array<{
+      source: string;
+      request: PromiseLike<{ data: unknown; error: unknown }>;
+    }> = [
+      {
+        source: 'productos para listas',
+        request: this.supabase.client
+          .from('productos')
+          .select('id,codigo,nombre')
+          .order('nombre'),
+      },
+      {
+        source: 'categorías',
+        request: this.supabase.client.from('categorias').select('*').order('nombre'),
+      },
+    ];
+    const [productsResult, categoriesResult] = await Promise.all(
+      reads.map(({ source, request }) => this.runRead(source, request)),
+    );
+    return {
+      productOptions: productsResult as ProductOption[],
+      categories: categoriesResult as Category[],
+    };
+  }
+
+  async loadDeferred(): Promise<
+    Pick<AppData, 'products' | 'movements' | 'sessions' | 'equipment' | 'configuration'>
+  > {
+    const reads: Array<{
+      source: string;
+      request: PromiseLike<{ data: unknown; error: unknown }>;
+    }> = [
+      {
+        source: 'stock de productos',
+        request: this.supabase.client.from('stock_actual').select('*').order('nombre'),
+      },
+      {
+        source: 'movimientos',
+        request: this.supabase.client
+          .from('movimientos')
+          .select('*, productos(nombre, codigo)')
+          .order('creado_en', { ascending: false })
+          .limit(500),
+      },
+      {
+        source: 'sesiones',
+        request: this.supabase.client
+          .from('sesiones')
+          .select('*, equipos(nombre)')
+          .order('inicio', { ascending: false })
+          .limit(250),
+      },
+      { source: 'equipos', request: this.supabase.client.from('equipos').select('*').order('id') },
+      {
+        source: 'configuración',
+        request: this.supabase.client.from('configuracion').select('*').limit(1),
+      },
+    ];
+    const results = await Promise.all(
+      reads.map(({ source, request }) => this.runRead(source, request)),
+    );
+    const [productsRes, movementsRes, sessionsRes, equipmentRes, configurationRes] = results;
+    return {
+      products: productsRes as Product[],
+      movements: movementsRes as Movement[],
+      sessions: sessionsRes as Session[],
+      equipment: equipmentRes as Equipment[],
+      configuration: (configurationRes as Configuration[])[0] ?? null,
+    };
+  }
+
   async loadAll(): Promise<AppData> {
+    const cached = this.getCached();
+    if (cached) return cached;
     const reads: Array<{
       source: string;
       request: PromiseLike<{ data: unknown; error: unknown }>;
@@ -144,8 +265,8 @@ export class InventoryDataService {
               );
             }),
           ]);
-          if (result.error) throw result.error;
-          return result.data ?? [];
+          if ((result as { error: unknown }).error) throw (result as { error: unknown }).error;
+          return ((result as { data: unknown }).data ?? []) as unknown;
         } catch (error) {
           throw new DataReadError(source, error);
         } finally {
@@ -161,14 +282,18 @@ export class InventoryDataService {
       Configuration[],
       Category[],
     ];
-    return {
+    const data: AppData = {
       products,
+      productOptions: products.map(({ id, codigo, nombre }) => ({ id, codigo, nombre })),
       movements,
       sessions,
       equipment,
       configuration: configuration[0] ?? null,
       categories,
     };
+    this.lastData = data;
+    this.lastAt = Date.now();
+    return data;
   }
 
   async createProduct(input: NewProductInput): Promise<Product> {

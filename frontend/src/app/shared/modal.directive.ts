@@ -19,7 +19,13 @@ export class ModalDirective implements AfterViewInit, OnDestroy {
   @Output() readonly dismissed = new EventEmitter<void>();
 
   ngAfterViewInit(): void {
-    this.element.showModal();
+    if (typeof (this.element as any).showModal === 'function') {
+      try {
+        (this.element as any).showModal();
+      } catch {
+        /* Ignorar en entornos sin soporte de dialog */
+      }
+    }
     this.element.querySelector<HTMLElement>('[autofocus]')?.focus();
   }
 
@@ -30,7 +36,19 @@ export class ModalDirective implements AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.element.close();
-    if (this.opener instanceof HTMLElement && this.opener.isConnected) this.opener.focus();
+    if (typeof (this.element as any).close === 'function') {
+      try {
+        (this.element as any).close();
+      } catch {
+        /* Ignorar en entornos sin soporte de dialog */
+      }
+    }
+    if (this.opener instanceof HTMLElement && this.opener.isConnected) {
+      try {
+        this.opener.focus();
+      } catch {
+        /* Ignorar */
+      }
+    }
   }
 }

@@ -43,7 +43,7 @@ export class AppShellComponent {
   readonly activeTab = signal<Tab>(this.readTab());
   readonly themeLabel = signal('Modo oscuro');
   private loadRevision = 0;
-  readonly reloadData = () => this.loadData();
+  readonly reloadData = () => this.loadData(true);
   @ViewChild(MovementsComponent) private movements?: MovementsComponent;
 
   openMovement(productId: number, type?: 'entrada' | 'salida'): void {
@@ -62,6 +62,8 @@ export class AppShellComponent {
         void this.loadData();
       } else {
         this.loadRevision++;
+        const svc: any = this.dataService;
+        if (typeof svc.clearCache === 'function') svc.clearCache();
         this.appData.set(null);
         this.dataError.set('');
         this.dataLoading.set(false);
@@ -69,19 +71,62 @@ export class AppShellComponent {
     });
   }
 
-  async loadData(): Promise<void> {
+  async loadData(forceRefresh = false): Promise<void> {
     const user = this.auth.currentUser();
     const revision = ++this.loadRevision;
     if (!user) return;
     this.dataLoading.set(true);
     this.dataError.set('');
+    const svc: any = this.dataService;
     try {
-      const data = await this.dataService.loadAll();
-      if (revision === this.loadRevision && this.auth.currentUser()?.id === user.id)
-        this.appData.set(data);
+      if (forceRefresh && typeof svc.clearCache === 'function') svc.clearCache();
+      if (!forceRefresh && typeof svc.getCached === 'function') {
+        const cached = svc.getCached();
+        if (cached) {
+          if (revision === this.loadRevision && this.auth.currentUser()?.id === user.id) {
+            this.appData.set(cached);
+            this.dataLoading.set(false);
+          }
+          return;
+        }
+      }
+      if (typeof svc.loadCritical === 'function' && typeof svc.loadDeferred === 'function') {
+        const critical = await svc.loadCritical();
+        if (revision !== this.loadRevision || this.auth.currentUser()?.id !== user.id) return;
+        this.appData.set({
+          ...critical,
+          products: [],
+          movements: [],
+          sessions: [],
+          equipment: [],
+          configuration: null,
+        });
+        const deferred = await svc.loadDeferred();
+        const current = this.appData();
+        if (
+          !current ||
+          revision !== this.loadRevision ||
+          this.auth.currentUser()?.id !== user.id
+        )
+          return;
+        const merged = {
+          ...current,
+          products: deferred.products,
+          movements: deferred.movements,
+          sessions: deferred.sessions,
+          equipment: deferred.equipment,
+          configuration: deferred.configuration,
+        };
+        this.appData.set(merged);
+        if (typeof svc.setCached === 'function') svc.setCached(merged);
+      } else {
+        const data = await this.dataService.loadAll();
+        if (revision === this.loadRevision && this.auth.currentUser()?.id === user.id)
+          this.appData.set(data);
+      }
     } catch (error) {
       if (revision !== this.loadRevision || this.auth.currentUser()?.id !== user.id) return;
-      this.appData.set(null);
+      if (!this.appData()) this.appData.set(null);
       this.dataError.set(
         error instanceof Error ? error.message : 'No se pudieron cargar los datos.',
       );

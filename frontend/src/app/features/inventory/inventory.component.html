@@ -18,6 +18,7 @@
       <option value="zero">Agotados</option>
     </select>
     <button class="btn" type="button" (click)="downloadCsv()">Descargar CSV</button>
+    <button class="btn" type="button" (click)="downloadPdf()">Previsualizar PDF</button>
     @if (isAdmin()) {
       <button class="btn primary" type="button" (click)="openNewProduct()">Nuevo producto</button>
     }
@@ -46,7 +47,7 @@
               <b>{{ product.stock }}</b>
             </td>
             <td class="num">{{ product.stock_minimo }}</td>
-            <td class="num">Q{{ product.precio.toFixed(2) }}</td>
+            <td class="num">Q{{ formatPrice(product.precio) }}</td>
             <td>
               <span
                 class="pill"
@@ -70,7 +71,9 @@
           </tr>
         } @empty {
           <tr>
-            <td colspan="8" class="empty">Ningún producto coincide con la búsqueda.</td>
+            <td colspan="8" class="empty">
+              {{ refreshing ? 'Cargando inventario…' : 'Ningún producto coincide con la búsqueda.' }}
+            </td>
           </tr>
         }
       </tbody>
@@ -80,6 +83,29 @@
     <p class="message" role="status">{{ message }}</p>
   }
 </div>
+@if (pdfPreviewOpen) {
+  <dialog
+    appModal
+    class="dialog pdf-preview"
+    aria-labelledby="pdfPreviewTitle"
+    (dismissed)="closePdfPreview()"
+  >
+    <div class="pdf-preview-content">
+      <h2 id="pdfPreviewTitle">Previsualización - Control de inventario</h2>
+      @if (pdfPreviewUrl) {
+        <iframe
+          [src]="pdfPreviewUrl"
+          title="Previsualización PDF"
+          class="pdf-preview-frame"
+        ></iframe>
+      }
+      <div class="actions pdf-preview-actions">
+        <button class="btn" type="button" (click)="downloadFromPreview()">Descargar PDF</button>
+        <button class="btn primary" type="button" (click)="closePdfPreview()">Cerrar</button>
+      </div>
+    </div>
+  </dialog>
+}
 @if (dialogOpen) {
   <dialog
     appModal

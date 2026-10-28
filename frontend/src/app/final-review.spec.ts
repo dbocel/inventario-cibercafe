@@ -22,6 +22,7 @@ const product = {
 const session = { id: 1, equipo_id: 1, inicio: '2026-10-28T10:00:00Z' };
 const data: AppData = {
   products: [product],
+  productOptions: [{ id: product.id, codigo: product.codigo, nombre: product.nombre }],
   movements: [],
   sessions: [session],
   equipment: [{ id: 1, nombre: 'Equipo 1' }],
@@ -228,6 +229,104 @@ describe('Regresiones de revisión final', () => {
     expect(f.componentInstance.appData()).toBeNull();
     pending.resolve({ ...data, products: [] });
     await f.whenStable();
+  });
+
+  it('muestra productos y categorías antes de que terminen las consultas secundarias', async () => {
+    const pending = deferred<Partial<AppData>>();
+    service.loadCritical = vi.fn().mockResolvedValue({
+      productOptions: data.productOptions,
+      categories: data.categories,
+    });
+    service.loadDeferred = vi.fn(() => pending.promise);
+    const f = TestBed.createComponent(AppShellComponent);
+    f.detectChanges();
+
+    await vi.waitFor(() => {
+      expect(f.componentInstance.appData()?.productOptions).toEqual(data.productOptions);
+    });
+    f.detectChanges();
+    const productOptions = Array.from(
+      f.nativeElement.querySelectorAll('#mProd option'),
+    ) as HTMLOptionElement[];
+    expect(productOptions.some((option) => option.textContent?.includes(product.nombre))).toBe(
+      true,
+    );
+    expect(f.componentInstance.appData()?.products).toEqual([]);
+    expect(f.componentInstance.appData()?.equipment).toEqual([]);
+    expect(service.loadDeferred).toHaveBeenCalledOnce();
+
+    pending.resolve({
+      products: [product],
+      movements: [],
+      sessions: [],
+      equipment: data.equipment,
+      configuration: data.configuration,
+    });
+    await f.whenStable();
+    expect(f.componentInstance.appData()?.products).toEqual([product]);
+    expect(f.componentInstance.appData()?.equipment).toEqual(data.equipment);
+  });
+
+  it('omite la caché en una recarga explícita', async () => {
+    service.getCached = vi.fn().mockReturnValue(data);
+    service.clearCache = vi.fn();
+    const f = TestBed.createComponent(AppShellComponent);
+    f.detectChanges();
+    await f.whenStable();
+    const fresh = { ...data, products: [] };
+    service.loadAll.mockResolvedValueOnce(fresh);
+
+    await f.componentInstance.reloadData();
+
+    expect(service.clearCache).toHaveBeenCalledOnce();
+    expect(service.loadAll).toHaveBeenCalledOnce();
+    expect(f.componentInstance.appData()).toEqual(fresh);
+  });
+
+  it('mantiene la carga activa hasta recibir datos secundarios', async () => {
+    const pending = deferred<Partial<AppData>>();
+    service.loadCritical = vi.fn().mockResolvedValue({
+      productOptions: data.productOptions,
+      categories: data.categories,
+    });
+    service.loadDeferred = vi.fn(() => pending.promise);
+    const f = TestBed.createComponent(AppShellComponent);
+    f.detectChanges();
+    await vi.waitFor(() => {
+      expect(f.componentInstance.appData()?.productOptions).toEqual(data.productOptions);
+    });
+    expect(f.componentInstance.dataLoading()).toBe(true);
+
+    pending.resolve({
+      products: [product],
+      movements: [],
+      sessions: [],
+      equipment: data.equipment,
+      configuration: data.configuration,
+    });
+    await vi.waitFor(() => expect(f.componentInstance.dataLoading()).toBe(false));
+    expect(f.componentInstance.appData()?.equipment).toEqual(data.equipment);
+  });
+
+  it('muestra errores de la carga secundaria sin descartar los datos del catálogo', async () => {
+    service.loadCritical = vi.fn().mockResolvedValue({
+      productOptions: data.productOptions,
+      categories: data.categories,
+    });
+    service.loadDeferred = vi
+      .fn()
+      .mockRejectedValue(new Error('No se pudo cargar equipos: acceso denegado'));
+    const f = TestBed.createComponent(AppShellComponent);
+    f.detectChanges();
+
+    await vi.waitFor(() => {
+      expect(f.componentInstance.dataError()).toContain('No se pudo cargar equipos');
+    });
+    expect(f.componentInstance.appData()?.productOptions).toEqual(data.productOptions);
+    f.detectChanges();
+    expect(f.nativeElement.querySelector('[role="alert"]').textContent).toContain(
+      'No se pudo cargar equipos',
+    );
   });
 
   it.each([null, NaN, -6])(

@@ -1,46 +1,44 @@
 # AGENTS.md
 
-## Repo y arquitectura
+## Arquitectura
 
-Sistema de inventario para cibercafé + papelería Internet K-ROL. La nueva interfaz Angular está en `frontend/`; el `index.html` de la raíz es la app estática anterior y se conserva como referencia hasta que el dueño verifique Angular en un navegador real. No eliminarlo ni reemplazarlo como parte de tareas de implementación sin aprobación explícita. No publicar desde este worktree salvo autorización explícita para una tarea de publicación; esta tarea documenta el procedimiento, pero no publica.
-
-- `frontend/src/app/core/auth/`: autenticación Supabase, restauración de sesión y rol desde `perfiles.rol`.
-- `frontend/src/app/core/data/`: lecturas y escrituras de inventario, movimientos y sesiones.
-- `frontend/src/app/features/`: resumen, inventario, movimientos, cibercafé, historial e inicio de sesión.
-- `frontend/src/app/layout/`: shell, navegación por fragmentos y controles de tema.
-- `frontend/src/environments/environment.ts`: solo URL de Supabase y clave pública anon existente.
-- `frontend/dist/frontend/browser/`: archivos estáticos publicables de producción; regenerable, no editar a mano. `3rdpartylicenses.txt` queda en `frontend/dist/frontend/`.
-- `index.html`, `plan de implementacion/`, y `Libro1.xlsx`: referencia y datos del sistema legado. El Excel y los CSV reales son sensibles, están ignorados y nunca deben agregarse a la app Angular, commits ni build.
-
-Toda la interfaz y los mensajes al usuario van en español (es-GT), con precios en quetzales (Q). Seguir el estilo Angular/TypeScript existente.
+- App Angular en `frontend/`. El `index.html` de la raíz es app estática **legacy**: conservar como referencia, no eliminar/reemplazar sin aprobación explícita. No publicar desde este worktree sin autorización.
+- Rutas por fragmentos: `#resumen`, `#inventario`, `#movimientos`, `#cibercafe`, `#historial`. `frontend/src/index.html` usa base relativa `./`.
+- Mapeo clave: `frontend/src/app/core/auth/` (Supabase Auth + rol desde `perfiles.rol`), `frontend/src/app/core/data/` (lecturas/escrituras), `frontend/src/app/features/` (vistas), `frontend/src/app/layout/` (shell + tema). 
+- Entorno: `frontend/src/environments/environment.ts` solo con URL de Supabase y clave anon pública.
+- Referencia/sensibles (ignorados): `index.html` raíz, `plan de implementacion/`, `Libro1.xlsx`. **Nunca** agregar CSV/Excel de negocio, credenciales o `service_role` al repo/build.
+- Idioma: español (es-GT), precios en quetzales (Q). Seguir estilo Angular/TypeScript existente.
 
 ## Comandos (PowerShell, desde `frontend/`)
 
 ```powershell
 npm.cmd ci
-npm.cmd start
-npm.cmd test -- --watch=false
+npm.cmd start        # http://localhost:4200/
+npm.cmd test -- --watch=false  # Angular + Vitest
 npm.cmd run build
 ```
 
-El servidor local abre `http://localhost:4200/`. Los tests se ejecutan con Angular/Vitest. La build se escribe en `frontend/dist/frontend/`; los estáticos publicables (`index.html`, JS/CSS, favicon) están en **`frontend/dist/frontend/browser/`** (ejecutando build dentro de `frontend/`); `3rdpartylicenses.txt` queda un nivel arriba. `src/index.html` usa base relativa `./`, y las pestañas son los fragmentos `#resumen`, `#inventario`, `#movimientos`, `#cibercafe` y `#historial`; verificar esos assets y enlaces bajo una subruta antes del handoff a Pages.
+- Build salida: `frontend/dist/frontend/`. **Archivos publicables**: `frontend/dist/frontend/browser/` (`index.html`, JS/CSS, favicon). `3rdpartylicenses.txt` queda en `frontend/dist/frontend/`. No editar `dist/` a mano.
+- Verificar assets/enlaces bajo subruta (Pages) antes de handoff; respetar base relativa `./` y los 5 fragmentos.
 
-## Supabase y límites de seguridad (no modificar como parte de la migración UI)
+## Supabase / Reglas críticas
 
-- Mantener el mismo proyecto, Auth, esquema, RPC y RLS. No cambiar SQL ni conceder nuevos permisos.
-- La clave anon es pública y solo es segura con RLS activo. Nunca incorporar contraseñas, PAT, `service_role` ni credenciales de pruebas al source, tests versionados, logs, dist o commits.
-- La app lee los datos bajo la sesión autenticada y muestra fallos de perfil/carga claramente; la ocultación de controles por rol solo es UX, RLS sigue siendo la autorización real.
-- **Todos los movimientos de inventario (incluida venta rápida y stock inicial) se escriben exclusivamente mediante RPC `registrar_movimiento`.** No insertar directamente en `movimientos` ni cambiar sus políticas.
-- Productos/configuración siguen con sus permisos existentes; las sesiones de cibercafé usan columnas existentes y políticas actuales. El botón `+10 min (demo)` afecta solo estado local, nunca se persiste.
-- `productos.costo` mantiene la visibilidad permitida actualmente por el modelo; no ampliar exposición.
+- Mantener proyecto/Auth/esquema/RPC/RLS tal como están. No cambiar SQL ni conceder permisos.
+- Clave anon pública solo segura con **RLS activo**. Nunca meter contraseñas, PAT, `service_role` o creds de prueba en source/tests/versionados/logs/dist/commits.
+- **Todos los movimientos de inventario** (venta rápida e inventario inicial) deben escribirse **exclusivamente vía RPC `registrar_movimiento`**. No insertar directo en `movimientos`, no cambiar sus políticas.
+- Ocultar controles por rol es solo UX; RLS es la autorización real.
+- Sesiones de cibercafé usan columnas/políticas existentes. Botón `+10 min (demo)` solo local, nunca persiste. `productos.costo` mantener visibilidad actual (no ampliar).
 
-## Procedimiento de verificación / E2E
+## Verificación / E2E
 
-1. Ejecutar `npm.cmd test -- --watch=false` y `npm.cmd run build` en `frontend/`.
-2. Servir `frontend/dist/frontend/browser/` bajo una URL con prefijo de proyecto y verificar carga de todos los assets y los cinco fragmentos.
-3. Para E2E con Supabase real, usar solo credenciales existentes en archivos temporales fuera del repo. Antes de escribir, autenticar y revisar stock y sesiones activas; elegir producto con stock y equipo libre. No tocar sesiones existentes. Probar movimiento por RPC y borrarlo/confirmar stock restaurado; cerrar/terminar y eliminar únicamente la sesión creada por la prueba. Registrar evidencia de limpieza. Si no puede garantizarse la reversión, no hacer escrituras; informar la limitación y cubrir comportamiento con tests mock/componentes.
-4. Auditar source rastreado y `frontend/dist/frontend/` por Excel, CSV de negocio, contraseñas, PAT, service-role y harnesses con credenciales. Los archivos de pruebas live permanecen en `%LOCALAPPDATA%\Temp\opencode\fase3-test\` y nunca se copian al repo/build.
+1. `npm.cmd test -- --watch=false` y `npm.cmd run build` desde `frontend/`.
+2. Servir `frontend/dist/frontend/browser/` con prefijo de proyecto y validar los 5 fragmentos + assets.
+3. Si hay E2E con Supabase real: usar credenciales solo en archivo temporal fuera del repo. Antes de escribir, autenticar/revisar stock/sesiones activas; elegir producto con stock y equipo libre. **No** tocar sesiones existentes. Probar movimiento por RPC y revertirlo/restaurar stock; crear/terminar **únicamente** sesión de prueba y eliminarla. Registrar limpieza. Si no se garantiza reversión → no escribir, reportar limitación y cubrir con mocks/component tests.
+4. Auditar source rastreado y `frontend/dist/frontend/` contra Excel/CSV sensibles, contraseñas, PAT, `service_role`. Tests "live" quedan en `%LOCALAPPDATA%\Temp\opencode\fase3-test/` y **nunca** van a repo/build.
 
-## Handoff GitHub Pages
+## Publicación GitHub Pages (manual)
 
-La URL del sitio es `https://dbocel.github.io/inventario-cibercafe/`. No hay workflow ni publicación automática. La publicación aprobada se hace manualmente en una rama huérfana `gh-pages`: ejecutar `npm.cmd ci`, `npm.cmd test -- --watch=false` y `npm.cmd run build` desde `frontend/`; publicar en la raíz de esa rama únicamente el contenido de `frontend/dist/frontend/browser/` junto con un `.nojekyll` vacío. No incluir la carpeta `browser` como subcarpeta, `3rdpartylicenses.txt`, código fuente, dependencias ni archivos ajenos al artefacto. En **Settings → Pages → Build and deployment**, elegir **Deploy from a branch → `gh-pages` → `/(root)`**. Cada cambio futuro requiere repetir manualmente build y publicación. El `index.html` legado de la raíz de la rama principal se conserva intacto. El dueño debe agregar manualmente `https://dbocel.github.io/inventario-cibercafe/` a la allowlist de URLs de redirección de Supabase cuando Auth necesite redirigir al sitio. No modificar Supabase/Auth/RLS, ni incluir datos sensibles; la clave anon pública depende de RLS activa.
+- URL: `https://dbocel.github.io/inventario-cibercafe/`
+- Sin workflow automático. En rama huérfana `gh-pages`: desde `frontend/` ejecutar `npm.cmd ci`, `npm.cmd test -- --watch=false`, `npm.cmd run build`. Publicar **únicamente** el contenido de `frontend/dist/frontend/browser/` en la **raíz** de `gh-pages` + `.nojekyll` vacío. **No** incluir carpeta `browser/`, `3rdpartylicenses.txt`, código fuente, deps ni archivos ajenos.
+- En **Settings → Pages → Build and deployment**: **Deploy from a branch → `gh-pages` → `/(root)`**. Repetir build+publicación por cada cambio. `index.html` legado de rama principal se conserva intacto.
+- Agregar `https://dbocel.github.io/inventario-cibercafe/` a allowlist de redirect URLs de Supabase si Auth redirige. No tocar Auth/RLS/esquema. Clave anon pública requiere RLS activo.

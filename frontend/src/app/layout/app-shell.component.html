@@ -59,6 +59,12 @@
         Historial
       </button>
     </nav>
+    @if (appData() && dataError()) {
+      <p class="error" role="alert">
+        {{ dataError() }}
+        <button class="btn" type="button" (click)="loadData(true)">Reintentar carga</button>
+      </p>
+    }
     <section id="tab-resumen" [hidden]="activeTab() !== 'resumen'">
       <div class="feature-slot" data-feature="resumen">
         @if (appData(); as data) {

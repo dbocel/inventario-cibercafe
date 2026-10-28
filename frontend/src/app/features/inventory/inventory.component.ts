@@ -9,6 +9,9 @@ import {
   Product,
   ProductStockError,
 } from '../../core/data/inventory-data.service';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 
 @Component({
   selector: 'app-inventory',
@@ -25,6 +28,7 @@ export class InventoryComponent {
   private readonly auth = inject(AuthService);
   private readonly dataService = inject(InventoryDataService);
   private readonly changeDetector = inject(ChangeDetectorRef);
+  private readonly sanitizer = inject(DomSanitizer);
   readonly isAdmin = () => this.auth.currentRole() === 'admin';
   search = '';
   category = '';
@@ -32,6 +36,9 @@ export class InventoryComponent {
   dialogOpen = false;
   saving = false;
   message = '';
+  pdfPreviewOpen = false;
+  pdfPreviewUrl: SafeResourceUrl | null = null;
+  private pdfBlobUrl: string | null = null;
   draft: NewProductInput = {
     nombre: '',
     codigo: '',
@@ -147,12 +154,129 @@ export class InventoryComponent {
       'Si no se descargó, este entorno bloquea descargas; en el sistema real sí funcionará';
   }
 
+  downloadPdf(): void {
+    try {
+      if (this.pdfBlobUrl) {
+        URL.revokeObjectURL(this.pdfBlobUrl);
+        this.pdfBlobUrl = null;
+      }
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
+      const pageWidth = doc.internal.pageSize.getWidth();
+
+      doc.setFontSize(14);
+      doc.text('CONTROL DE INVENTARIO', pageWidth / 2, 12, { align: 'center' });
+      doc.setFontSize(10);
+      doc.text('INTERNET K-ROL', pageWidth / 2, 18, { align: 'center' });
+      doc.setFontSize(8);
+      doc.text(`Fecha: ${new Date().toLocaleDateString('es-GT')}`, pageWidth / 2, 24, { align: 'center' });
+
+      const head = [['CANTIDADES', 'PRODUCTO', 'COSTO UNITARIO', 'COSTO DE VENTA', 'COSTO TOTAL']];
+      const body: string[][] = [];
+      let lastCategory = '';
+      body.push(['MERCADERÍAS', '', '', '', '']);
+      const products = [...this.filteredProducts].sort((a, b) => {
+        const ca = (a.categoria || '').localeCompare(b.categoria || '', 'es-GT');
+        if (ca !== 0) return ca;
+        return (a.nombre || '').localeCompare(b.nombre || '', 'es-GT');
+      });
+      for (const product of products) {
+        const category = product.categoria || '';
+        if (category && category !== lastCategory) {
+          body.push([category.toUpperCase(), '', '', '', '']);
+          lastCategory = category;
+        }
+        const qty = Number(product.stock) || 0;
+        const costoUnit = Number((product as any).costo) || 0;
+        const precioVenta = Number(product.precio) || 0;
+        const costoTotal = qty * costoUnit;
+        body.push([
+          qty === 0 ? '' : qty.toString(),
+          product.nombre || '',
+          costoUnit === 0 ? '' : `Q${costoUnit.toFixed(2)}`,
+          precioVenta === 0 ? '' : `Q${precioVenta.toFixed(2)}`,
+          costoTotal === 0 ? '' : `Q${costoTotal.toFixed(2)}`,
+        ]);
+      }
+      body.push(['', '', '', '', '']);
+      body.push(['NO CORRIENTE', '', '', '', '']);
+
+      autoTable(doc, {
+        head,
+        body,
+        startY: 30,
+        styles: { fontSize: 6.5, cellPadding: 1.0 },
+        headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], halign: 'center' },
+        columnStyles: {
+          0: { halign: 'center', cellWidth: 16 },
+          1: { cellWidth: 90 },
+          2: { halign: 'right', cellWidth: 24 },
+          3: { halign: 'right', cellWidth: 24 },
+          4: { halign: 'right', cellWidth: 24 },
+        },
+        didParseCell: (data: any) => {
+          if (data.section === 'body' && data.row.raw) {
+            const row = data.row.raw as string[];
+            if (row.length === 5 && row[0] && !row[1] && !row[2] && !row[3] && !row[4]) {
+              data.cell.styles.fontStyle = 'bold';
+              data.cell.colSpan = 5;
+            }
+          }
+        },
+      });
+
+      const finalY = (doc as any).lastAutoTable?.finalY || 30;
+      let total = 0;
+      for (const product of products) {
+        const qty = Number(product.stock) || 0;
+        const costoUnit = Number((product as any).costo) || 0;
+        total += qty * costoUnit;
+      }
+      doc.setFontSize(8);
+      doc.text(`Q${total.toFixed(2)}`, pageWidth - 14, finalY + 6, { align: 'right' });
+
+      const blob = doc.output('blob');
+      this.pdfBlobUrl = URL.createObjectURL(blob);
+      this.pdfPreviewUrl = this.sanitizer.bypassSecurityTrustResourceUrl(this.pdfBlobUrl);
+      this.pdfPreviewOpen = true;
+      this.message = 'Previsualización generada. Puedes descargar desde el modal.';
+    } catch (error) {
+      this.message = error instanceof Error ? error.message : 'No se pudo generar el PDF.';
+    }
+    this.changeDetector.markForCheck();
+  }
+
+  downloadFromPreview(): void {
+    if (!this.pdfBlobUrl) return;
+    try {
+      const link = document.createElement('a');
+      link.href = this.pdfBlobUrl;
+      link.download = 'Control de inventario.pdf';
+      link.click();
+    } catch {
+      this.message = 'No se pudo descargar el PDF.';
+      this.changeDetector.markForCheck();
+    }
+  }
+
+  closePdfPreview(): void {
+    if (this.pdfBlobUrl) {
+      URL.revokeObjectURL(this.pdfBlobUrl);
+      this.pdfBlobUrl = null;
+    }
+    this.pdfPreviewUrl = null;
+    this.pdfPreviewOpen = false;
+  }
+
   stateLabel(product: Product): string {
     return product.stock === 0
       ? 'Agotado'
       : product.stock <= product.stock_minimo
         ? 'Stock bajo'
         : 'Disponible';
+  }
+
+  formatPrice(price: number | null): string {
+    return (Number(price) || 0).toFixed(2);
   }
 
   private nextCode(): string {

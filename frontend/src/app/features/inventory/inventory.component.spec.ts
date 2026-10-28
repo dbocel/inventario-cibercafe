@@ -81,6 +81,16 @@ describe('InventoryComponent', () => {
     }
   });
 
+  it('renders products whose database price is null without breaking the inventory view', () => {
+    const fixture = TestBed.createComponent(InventoryComponent);
+    fixture.componentRef.setInput('data', {
+      ...data,
+      products: [{ ...data.products[0], precio: null }],
+    });
+    expect(() => fixture.detectChanges()).not.toThrow();
+    expect(fixture.nativeElement.textContent).toContain('Q0.00');
+  });
+
   it('does not create products unless the current role is admin', async () => {
     const role = { value: 'cajero' };
     TestBed.overrideProvider(AuthService, { useValue: { currentRole: () => role.value } });

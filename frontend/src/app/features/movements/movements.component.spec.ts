@@ -5,6 +5,7 @@ import { MovementsComponent } from './movements.component';
 describe('MovementsComponent', () => {
   const data: AppData = {
     products: [{ id: 1, codigo: 'P1', nombre: 'Lápiz', stock: 2, stock_minimo: 1, precio: 1 }],
+    productOptions: [{ id: 1, codigo: 'P1', nombre: 'Lápiz' }],
     movements: [],
     sessions: [],
     equipment: [],
@@ -57,5 +58,20 @@ describe('MovementsComponent', () => {
     expect(registerMovement).toHaveBeenCalledWith(1, 'salida', 1, 'Venta', 'Venta rápida');
     expect(refresh).toHaveBeenCalledOnce();
     fixture.destroy();
+  });
+
+  it('renders quick-sale products with null prices', async () => {
+    await TestBed.configureTestingModule({
+      imports: [MovementsComponent],
+      providers: [{ provide: InventoryDataService, useValue: { registerMovement: vi.fn() } }],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(MovementsComponent);
+    fixture.componentRef.setInput('data', {
+      ...data,
+      products: [{ ...data.products[0], precio: null }],
+    });
+
+    expect(() => fixture.detectChanges()).not.toThrow();
+    expect(fixture.nativeElement.textContent).toContain('Q0.00');
   });
 });

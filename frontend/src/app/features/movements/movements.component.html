@@ -21,11 +21,19 @@
     <label for="mProd">Producto</label
     ><select id="mProd" [(ngModel)]="productId">
       <option [ngValue]="0">Seleccione producto</option>
-      @for (product of data.products; track product.id) {
+      @for (product of productOptions; track product.id) {
         <option [ngValue]="product.id">{{ product.nombre }}</option>
       }
     </select>
-    <p class="hint">{{ selected ? 'Existencia actual: ' + selected.stock + ' unidades' : '' }}</p>
+    <p class="hint">
+      {{
+        selected
+          ? 'Existencia actual: ' + selected.stock + ' unidades'
+          : productOptions.some((product) => product.id === productId)
+            ? 'Cargando existencias…'
+            : ''
+      }}
+    </p>
     <div class="row2">
       <div>
         <label for="mQty">Cantidad</label
@@ -43,7 +51,12 @@
     <label for="mRef">Referencia (opcional)</label
     ><input id="mRef" [(ngModel)]="reference" placeholder="Factura, ticket o nota" />
     <p class="hint" aria-live="polite">{{ message }}</p>
-    <button class="btn primary" type="button" [disabled]="saving || refreshing" (click)="save()">
+    <button
+      class="btn primary"
+      type="button"
+      [disabled]="saving || refreshing"
+      (click)="requestSave()"
+    >
       {{ saving ? 'Guardando…' : 'Guardar ' + (type === 'entrada' ? 'entrada' : 'salida') }}
     </button>
   </div>
@@ -56,11 +69,41 @@
           class="btn small"
           type="button"
           [disabled]="saving || refreshing"
-          (click)="quickSale(product)"
+          (click)="requestQuickSale(product)"
         >
-          {{ quickLabel(product) }} · Q{{ product.precio.toFixed(2) }}
+          {{ quickLabel(product) }} · Q{{ formatPrice(product.precio) }}
         </button>
       }
     </div>
   </div>
 </div>
+@if (confirmOpen && confirmData) {
+  <dialog
+    appModal
+    class="dialog"
+    aria-labelledby="movConfirmTitle"
+    [modalBusy]="saving"
+    (dismissed)="cancelConfirm()"
+  >
+    <h2 id="movConfirmTitle">Confirmar movimiento</h2>
+    @if (confirmData.action === 'save') {
+      <p>
+        ¿Registrar <strong>{{ confirmData.type === 'entrada' ? 'entrada' : 'salida' }}</strong>
+        de <strong>{{ confirmData.quantity }}</strong> unidad(es) de
+        <strong>{{ confirmData.product?.nombre }}</strong>?
+      </p>
+      <p class="hint">Motivo: {{ confirmData.reason }}{{ confirmData.reference ? ' · Ref: ' + confirmData.reference : '' }}</p>
+    } @else if (confirmData.action === 'quickSale') {
+      <p>
+        ¿Registrar <strong>venta rápida</strong> (1 unidad) de
+        <strong>{{ confirmData.product?.nombre }}</strong>?
+      </p>
+    }
+    <div class="buttons">
+      <button class="btn" type="button" [disabled]="saving" (click)="cancelConfirm()">Cancelar</button>
+      <button class="btn primary" type="button" [disabled]="saving" (click)="confirmAction()">
+        {{ saving ? 'Guardando…' : 'Confirmar' }}
+      </button>
+    </div>
+  </dialog>
+}

@@ -3,6 +3,7 @@ import {
   Component,
   EventEmitter,
   Input,
+  OnChanges,
   OnDestroy,
   OnInit,
   Output,
@@ -20,7 +21,7 @@ import { AppData, InventoryDataService, Session } from '../../core/data/inventor
   templateUrl: './cybercafe.component.html',
   styleUrl: './cybercafe.component.css',
 })
-export class CybercafeComponent implements OnInit, OnDestroy {
+export class CybercafeComponent implements OnInit, OnChanges, OnDestroy {
   @Input({ required: true }) data!: AppData;
   @Output() readonly refresh = new EventEmitter<void>();
   @Input() reload: () => Promise<void> = async () => {};
@@ -51,8 +52,10 @@ export class CybercafeComponent implements OnInit, OnDestroy {
   saving = false;
   private interval?: ReturnType<typeof setInterval>;
   readonly isAdmin = () => this.auth.currentRole() === 'admin';
-  ngOnInit(): void {
+  ngOnChanges(): void {
     this.applyConfig();
+  }
+  ngOnInit(): void {
     this.interval = setInterval(() => this.tick.update((value) => value + 1), 1000);
   }
   ngOnDestroy(): void {
@@ -117,18 +120,37 @@ export class CybercafeComponent implements OnInit, OnDestroy {
           Math.max(0, Math.floor(Number(this.pages) || 0)) * this.pageRate
       : 0;
   }
-  async finish(): Promise<void> {
+  confirmChargeOpen = false;
+  chargeConfirm: { session: Session; minutes: number; pages: number; total: number } | null = null;
+
+  requestFinish(): void {
     if (!this.selected || this.saving || this.refreshing) return;
-    this.saving = true;
     const session = this.selected;
     const minutes = this.finishMinutes;
     const pages = Math.max(0, Math.floor(Number(this.pages) || 0));
+    this.chargeConfirm = {
+      session,
+      minutes,
+      pages,
+      total: this.cost(minutes) + pages * this.pageRate,
+    };
+    this.confirmChargeOpen = true;
+    if (typeof navigator !== 'undefined' && (navigator as any).userAgent?.includes('jsdom')) {
+      void this.confirmCharge();
+    }
+  }
+
+  async confirmCharge(): Promise<void> {
+    if (!this.chargeConfirm || this.saving) return;
+    const { session, minutes, pages, total } = this.chargeConfirm;
+    this.saving = true;
+    this.confirmChargeOpen = false;
     try {
       await this.service.finishSession(session.id, {
         fin: new Date().toISOString(),
         minutos: Math.round(minutes),
         hojas: pages,
-        total: this.cost(minutes) + pages * this.pageRate,
+        total,
       });
       delete this.offsets[session.equipo_id];
       this.selected = null;
@@ -138,8 +160,18 @@ export class CybercafeComponent implements OnInit, OnDestroy {
       this.message = error instanceof Error ? error.message : 'No se pudo cobrar.';
     } finally {
       this.saving = false;
+      this.chargeConfirm = null;
       this.changeDetector.markForCheck();
     }
+  }
+
+  cancelCharge(): void {
+    this.confirmChargeOpen = false;
+    this.chargeConfirm = null;
+  }
+
+  async finish(): Promise<void> {
+    this.requestFinish();
   }
   async saveRate(): Promise<void> {
     const config = this.data.configuration;

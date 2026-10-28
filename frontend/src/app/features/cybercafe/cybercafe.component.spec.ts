@@ -8,6 +8,7 @@ describe('CybercafeComponent', () => {
   const session = { id: 4, equipo_id: 2, inicio: start, equipos: { nombre: 'Equipo 2' } };
   const data: AppData = {
     products: [],
+    productOptions: [],
     movements: [],
     sessions: [session],
     equipment: [{ id: 2, nombre: 'Equipo 2' }],
@@ -53,6 +54,26 @@ describe('CybercafeComponent', () => {
       expect.objectContaining({ minutos: 26, hojas: 2, total: 4 }),
     );
     fixture.destroy();
+  });
+
+  it('updates equipment and configuration when deferred data arrives', async () => {
+    await TestBed.configureTestingModule({
+      imports: [CybercafeComponent],
+      providers: [
+        { provide: InventoryDataService, useValue: service },
+        { provide: AuthService, useValue: { currentRole: () => 'admin' } },
+      ],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(CybercafeComponent);
+    fixture.componentRef.setInput('data', { ...data, equipment: [], configuration: null });
+    fixture.detectChanges();
+
+    fixture.componentRef.setInput('data', data);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Equipo 2');
+    expect(fixture.componentInstance.rate).toBe(6);
+    expect(fixture.componentInstance.pageRate).toBe(0.5);
   });
   it('starts sessions using the permitted equipo_id insert service path', async () => {
     await TestBed.configureTestingModule({

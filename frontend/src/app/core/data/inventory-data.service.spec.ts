@@ -29,7 +29,7 @@ describe('InventoryDataService', () => {
         }
         builder['then'] = (resolve: (value: unknown) => unknown) =>
           resolve(
-            table === 'productos'
+            table === 'productos' && query.calls.some((call) => call[0] === 'insert')
               ? insertResponse
               : {
                   data: failedTable === table ? null : [],
@@ -93,6 +93,33 @@ describe('InventoryDataService', () => {
   it('surfaces the failing read by source', async () => {
     failedTable = 'sesiones';
     await expect(service.loadAll()).rejects.toMatchObject({ source: 'sesiones' });
+  });
+
+  it('loads dropdown data separately from secondary datasets', async () => {
+    const critical = await service.loadCritical();
+    expect(critical).toEqual({ productOptions: [], categories: [] });
+    expect(queries.map((query) => query.table)).toEqual(['productos', 'categorias']);
+    expect(queries[0].calls).toEqual([
+      ['select', 'id,codigo,nombre'],
+      ['order', 'nombre'],
+    ]);
+
+    queries = [];
+    const deferred = await service.loadDeferred();
+    expect(deferred).toEqual({
+      products: [],
+      movements: [],
+      sessions: [],
+      equipment: [],
+      configuration: null,
+    });
+    expect(queries.map((query) => query.table)).toEqual([
+      'stock_actual',
+      'movimientos',
+      'sesiones',
+      'equipos',
+      'configuracion',
+    ]);
   });
 
   it('inserts product fields and skips the initial-stock RPC at zero', async () => {

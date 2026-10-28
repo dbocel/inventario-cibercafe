@@ -28,6 +28,11 @@
     en uso. Se cobra por bloques de {{ block }} min a Q{{ rate.toFixed(2) }} la hora.
   </p>
   <div class="stations">
+    @if (refreshing && !data.equipment.length) {
+      <p class="hint" role="status">Cargando equipos…</p>
+    } @else if (!data.equipment.length) {
+      <p class="hint" role="status">No hay equipos disponibles. Vuelva a cargar los datos.</p>
+    }
     @for (equipment of data.equipment; track equipment.id) {
       @let session = active(equipment.id);
       <div class="station" [class.busy]="session">
@@ -114,8 +119,40 @@
     <div class="buttons">
       <button class="btn" type="button" [disabled]="saving" (click)="selected = null">
         Cancelar</button
-      ><button class="btn primary" type="button" [disabled]="saving" (click)="finish()">
+      ><button class="btn primary" type="button" [disabled]="saving" (click)="requestFinish()">
         Cobrar y terminar
+      </button>
+    </div>
+  </dialog>
+}
+@if (confirmChargeOpen && chargeConfirm) {
+  <dialog
+    appModal
+    class="dialog"
+    aria-labelledby="chargeConfirmTitle"
+    [modalBusy]="saving"
+    (dismissed)="cancelCharge()"
+  >
+    <h2 id="chargeConfirmTitle">Confirmar cobro</h2>
+    <p>
+      Equipo: <strong>{{ chargeConfirm.session.equipos?.nombre || '—' }}</strong>
+    </p>
+    <p>
+      Tiempo: <strong>{{ Math.round(chargeConfirm.minutes) }} min</strong> ·
+      Internet: <strong>Q{{ cost(chargeConfirm.minutes).toFixed(2) }}</strong>
+    </p>
+    <p>
+      Hojas impresas: <strong>{{ chargeConfirm.pages }}</strong> ·
+      Impresión: <strong>Q{{ (chargeConfirm.pages * pageRate).toFixed(2) }}</strong>
+    </p>
+    <div class="total">
+      <b>Q{{ chargeConfirm.total.toFixed(2) }}</b
+      ><span>Total a cobrar</span>
+    </div>
+    <div class="buttons">
+      <button class="btn" type="button" [disabled]="saving" (click)="cancelCharge()">Cancelar</button>
+      <button class="btn primary" type="button" [disabled]="saving" (click)="confirmCharge()">
+        {{ saving ? 'Cobranding…' : 'Confirmar cobro' }}
       </button>
     </div>
   </dialog>
