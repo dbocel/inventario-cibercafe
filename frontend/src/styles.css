@@ -1,1 +1,99 @@
-/* You can add global styles to this file, and also import other style files */
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&display=swap');
+:root {
+  color-scheme: light;
+  --bg: #f2f5f8;
+  --surface: #ffffff;
+  --ink: #1d2330;
+  --muted: #5e6878;
+  --line: #d9dfe8;
+  --blue: #1f3fbf;
+  --blue-ink: #ffffff;
+  --hi: #ffe14d;
+  --hi-ink: #3a3000;
+  --in: #0e7a4b;
+  --in-bg: #ddf3e8;
+  --out: #b3261e;
+  --out-bg: #fbe3e1;
+  --warn-bg: #fff1bf;
+  --grid: rgba(31, 63, 191, 0.07);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --bg: #141821;
+    --surface: #1d2330;
+    --ink: #eef1f6;
+    --muted: #9aa5b8;
+    --line: #2e3648;
+    --blue: #7f97ff;
+    --blue-ink: #10162b;
+    --hi: #ffe14d;
+    --hi-ink: #3a3000;
+    --in: #5fd6a0;
+    --in-bg: #12382a;
+    --out: #ff8f86;
+    --out-bg: #40191a;
+    --warn-bg: #3d3410;
+    --grid: rgba(127, 151, 255, 0.08);
+  }
+}
+* {
+  box-sizing: border-box;
+}
+html {
+  scroll-padding-top: env(safe-area-inset-top, 0px);
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font:
+    15px/1.5 system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px);
+  background-size: 100% 28px;
+  padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
+}
+h1,
+h2,
+h3 {
+  font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+  line-height: 1.1;
+}
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
+}
+.panel {
+  background: var(--surface);
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+.panel h2 {
+  font-size: 20px;
+}
+.form input,
+.form select {
+  width: 100%;
+  background: var(--bg);
+  border: 1.5px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+.hint {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 6px 0 0;
+  min-height: 20px;
+}

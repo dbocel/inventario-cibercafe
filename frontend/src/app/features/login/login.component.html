@@ -1,0 +1,32 @@
+<div class="login-view">
+  <form class="panel form login-panel" (submit)="submit($event)">
+    <h2>Iniciar sesión</h2>
+    <p class="hint">Sistema de inventario · Cibercafé y Papelería</p>
+    <label for="loginEmail">Correo</label>
+    <input
+      id="loginEmail"
+      name="email"
+      type="email"
+      autocomplete="username"
+      required
+      [(ngModel)]="email"
+    />
+    <label for="loginPassword">Contraseña</label>
+    <input
+      id="loginPassword"
+      name="password"
+      type="password"
+      autocomplete="current-password"
+      required
+      [(ngModel)]="password"
+    />
+    @if (auth.error()) {
+      <p class="hint err" role="alert" aria-live="polite">{{ auth.error() }}</p>
+    }
+    <div class="login-actions">
+      <button class="btn primary" type="submit" [disabled]="auth.loading()">
+        {{ auth.loading() ? 'Ingresando…' : 'Entrar' }}
+      </button>
+    </div>
+  </form>
+</div>

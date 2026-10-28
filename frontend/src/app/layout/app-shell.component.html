@@ -1,0 +1,101 @@
+@if (auth.currentUser()) {
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <h1>Inventario <mark>Cibercafé y Papelería</mark></h1>
+        <p>Control de entradas y salidas de insumos, útiles y artículos de venta.</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn" id="btnOut" type="button" (click)="logout()">Cerrar sesión</button>
+        <button class="btn" id="btnTheme" type="button" (click)="toggleTheme()">
+          {{ themeLabel() }}
+        </button>
+        @if (auth.currentRole() === 'admin') {
+          <button class="btn primary" id="btnNew" type="button">Nuevo producto</button>
+        }
+      </div>
+    </header>
+    <nav role="tablist" aria-label="Secciones">
+      <button
+        role="tab"
+        type="button"
+        [attr.aria-selected]="activeTab() === 'resumen'"
+        data-tab="resumen"
+        (click)="selectTab('resumen')"
+      >
+        Resumen
+      </button>
+      <button
+        role="tab"
+        type="button"
+        [attr.aria-selected]="activeTab() === 'inventario'"
+        data-tab="inventario"
+        (click)="selectTab('inventario')"
+      >
+        Inventario
+      </button>
+      <button
+        role="tab"
+        type="button"
+        [attr.aria-selected]="activeTab() === 'movimientos'"
+        data-tab="movimientos"
+        (click)="selectTab('movimientos')"
+      >
+        Registrar movimiento
+      </button>
+      <button
+        role="tab"
+        type="button"
+        [attr.aria-selected]="activeTab() === 'cibercafe'"
+        data-tab="cibercafe"
+        (click)="selectTab('cibercafe')"
+      >
+        Cibercafé
+      </button>
+      <button
+        role="tab"
+        type="button"
+        [attr.aria-selected]="activeTab() === 'historial'"
+        data-tab="historial"
+        (click)="selectTab('historial')"
+      >
+        Historial
+      </button>
+    </nav>
+    <section id="tab-resumen" [hidden]="activeTab() !== 'resumen'">
+      <div class="feature-slot" data-feature="resumen">
+        <h2>Resumen</h2>
+        <p>Panel de resumen de inventario y actividad.</p>
+      </div>
+    </section>
+    <section id="tab-inventario" [hidden]="activeTab() !== 'inventario'">
+      <div class="feature-slot" data-feature="inventario">
+        <h2>Inventario</h2>
+        <p>Catálogo y existencias.</p>
+      </div>
+    </section>
+    <section id="tab-movimientos" [hidden]="activeTab() !== 'movimientos'">
+      <div class="feature-slot" data-feature="movimientos">
+        <h2>Registrar movimiento</h2>
+        <p>Entradas, salidas y venta rápida.</p>
+      </div>
+    </section>
+    <section id="tab-cibercafe" [hidden]="activeTab() !== 'cibercafe'">
+      <div class="feature-slot" data-feature="cibercafe">
+        <h2>Cibercafé</h2>
+        <p>Equipos y sesiones.</p>
+        @if (auth.currentRole() === 'admin') {
+          <div class="rates" data-admin-control>Tarifas administradas por el administrador.</div>
+        }
+      </div>
+    </section>
+    <section id="tab-historial" [hidden]="activeTab() !== 'historial'">
+      <div class="feature-slot" data-feature="historial">
+        <h2>Historial</h2>
+        <p>Movimientos y sesiones registrados.</p>
+      </div>
+    </section>
+  </div>
+} @else {
+  <app-login />
+}
