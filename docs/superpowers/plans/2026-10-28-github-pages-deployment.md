@@ -4,9 +4,9 @@
 
 **Goal:** Publish the verified Angular frontend as a static GitHub Pages site for `dbocel/inventario-cibercafe`.
 
-**Architecture:** GitHub Actions builds/tests `frontend/` and deploys only `frontend/dist/frontend/browser/` through the Pages artifact workflow. The remote already has a `main` branch with a README and legacy `index.html`; integrate its history without force-push, preserve the remote README and the current local root `index.html`, and publish Angular from the workflow artifact rather than the repository root.
+**Architecture:** The remote `main` history is integrated without force-push, preserving its README and the current local root `index.html`. GitHub Actions was attempted but the account is billing-locked; the approved fallback is a manual orphan `gh-pages` branch containing only `frontend/dist/frontend/browser/` and `.nojekyll`. The owner selects that branch as the Pages source; the root legacy app and source tree are not deployed.
 
-**Tech Stack:** GitHub Actions, `actions/configure-pages`, `actions/upload-pages-artifact`, `actions/deploy-pages`, Node.js 24, Angular CLI, npm.
+**Tech Stack:** Git, GitHub Pages branch publishing, Node.js 24, Angular CLI, npm.
 
 **Spec:** `docs/superpowers/specs/2026-10-28-angular-frontend-design.md`; Phase 5 of `plan de implementacion/PLAN_inventario_funcional.md`.
 
@@ -17,6 +17,7 @@
 - Do not publish Excel/CSV business data or `Inventario.pdf`.
 - Do not force-push; preserve the remote `main` branch content and history.
 - Use Node.js 24 for the Angular CLI toolchain and run tests before build/deploy.
+- Publish a clean orphan `gh-pages` branch with static browser artifacts only; future deployments are manual until Actions billing is restored.
 - Keep the local uncommitted `frontend/angular.json` telemetry change unstaged unless separately authorized; do not stage unrelated `Inventario.pdf`.
 - Production Pages URL: `https://dbocel.github.io/inventario-cibercafe/`; build artifacts use relative `./` base paths.
 
@@ -24,8 +25,8 @@
 
 - Remote history is unrelated to the local repository: merge its `main` safely, preserving both histories and resolving only the expected legacy `index.html` conflict in favor of the current local version; verify the remote README remains.
 - The deployment artifact must be Angular's `browser/` directory, not `dist/` parent or root legacy HTML; verify uploaded artifact contents.
-- A failed test/build must block deployment; workflow must not deploy on failed jobs.
-- Pages settings may require Actions source enablement; document/perform only the specific repository setting necessary, without changing visibility or unrelated settings.
+- The `gh-pages` branch must contain only the Angular browser build and `.nojekyll`, never source, dependencies, or business data.
+- Pages settings must use branch `gh-pages`, folder `/(root)`; the owner must make this UI change because GitHub Pages API reports no site and no authenticated GitHub API tool is available.
 - Supabase redirect allowlist should include the Pages URL if Auth redirect flows need it; don't modify Supabase credentials/settings silently—document the URL or request dashboard access if direct configuration is unavailable.
 
 ---
@@ -58,20 +59,34 @@
 - [ ] Fetch and inspect remote `main`; resolve only expected content conflicts while preserving both histories and the remote README.
 - [ ] Verify merge result and root `index.html`/README contents; do not push in this task.
 
-### Task 3: Publish after the workflow and merged history are reviewed
+### Task 3: Prepare the manual branch-publishing handoff
 
 **Files:**
-- Remote operation only: push reviewed feature branch to remote `main`, then fast-forward local `master` to the published commit.
-- GitHub Pages repository setting: select GitHub Actions as the Pages source only if required by the workflow.
-- No application files beyond Tasks 1–2 unless a workflow validation reveals a defect.
+- Delete: `.github/workflows/deploy-pages.yml` (GitHub Actions is blocked by the account billing lock and the user chose manual branch publishing).
+- Modify: `frontend/README.md`, root `README.md`, and `AGENTS.md` to document the manual `gh-pages` process and exact output folder.
+- Prepare: the exact static artifact contents and security audit for a separate orphan `gh-pages` branch; do not push in this task.
 
 **Interfaces:**
-- The reviewed feature branch contains both local project history and `origin/main`; use `git push origin HEAD:main` (fast-forward only).
-- If the remote rejects the push due to branch protection or authentication, stop and report; do not force-push or bypass protection.
+- The source branch contains both local project history and `origin/main`.
+- The intended Pages tree is only `frontend/dist/frontend/browser/` plus `.nojekyll`; `gh-pages` was confirmed absent.
+- This task is local only; no push or Pages setting change.
 
-- [ ] Run final tests/build/audit on the integrated tree; stage only deployment workflow, README, and explicitly intended merge files—exclude `Inventario.pdf` and the uncommitted Angular analytics change.
-- [ ] Push the reviewed branch to `origin main`; verify the GitHub Actions workflow completes and the Pages URL serves Angular, all assets, and five hash tabs.
-- [ ] Fast-forward local `master` to the published commit without staging unrelated working-tree files.
+- [ ] Remove the ineffective Actions workflow and update README/AGENTS with the manual branch publishing procedure and exact Pages settings.
+- [ ] Run tests/build/audit; prepare and audit only the static browser artifact plus `.nojekyll`. Stage no PDF, telemetry change, source tree, or dependencies.
+
+### Task 4: Push reviewed source and static branch, then verify Pages
+
+**Files:**
+- Remote operations only: push source history to `main` and static artifact to `gh-pages`; configure Pages source via the owner UI if not already changed.
+
+**Interfaces:**
+- Push source branch to `origin main` as a fast-forward; push the orphan artifact commit to `origin gh-pages` without force.
+- Pages source must be branch `gh-pages`, folder `/(root)`.
+
+- [ ] Confirm both remote branch tips immediately before push; stop if either moved unexpectedly.
+- [ ] Push both authorized branches; verify the GitHub Pages deployment under `/inventario-cibercafe/` serves Angular and all local assets.
+- [ ] Verify the five hash tabs and leave the root `index.html` unchanged.
+- [ ] Fast-forward local `master` to the pushed source commit without staging unrelated working-tree files.
 - [ ] Provide the owner the Supabase Auth URL to allowlist: `https://dbocel.github.io/inventario-cibercafe/`; if dashboard access is not available, leave this as an explicit manual step rather than altering auth settings through an unverified credential.
 
 ## Publication boundary
