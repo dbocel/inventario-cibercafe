@@ -114,6 +114,30 @@ export class AuthService {
     }
   }
 
+  async signInWithGoogle(): Promise<void> {
+    const revision = ++this.revision;
+    this.loading.set(true);
+    this.error.set(null);
+    try {
+      const redirectTo = window.location.origin + window.location.pathname;
+      const { error } = await this.bounded(
+        this.supabase.client.auth.signInWithOAuth({
+          provider: 'google',
+          options: { redirectTo },
+        }),
+      );
+      if (revision !== this.revision) return;
+      if (error) throw error;
+      // El navegador redirige a Google; la sesión se restaurará al volver.
+    } catch (error) {
+      if (revision !== this.revision) return;
+      this.clearAuth();
+      this.error.set('No se pudo iniciar sesión con Google. Intente nuevamente.');
+      this.loading.set(false);
+      throw error instanceof Error ? error : new Error(this.error()!);
+    }
+  }
+
   async signOut(): Promise<void> {
     this.revision++;
     this.clearAuth();

@@ -23,4 +23,13 @@ export class LoginComponent {
       // AuthService expone el mensaje en español para mantenerlo en pantalla.
     }
   }
+
+  async signInWithGoogle(): Promise<void> {
+    if (this.auth.loading()) return;
+    try {
+      await this.auth.signInWithGoogle();
+    } catch {
+      // AuthService expone el mensaje en español para mantenerlo en pantalla.
+    }
+  }
 }

@@ -13,6 +13,7 @@ describe('LoginComponent', () => {
         auth.error.set('Correo o contraseña incorrectos.');
         throw new Error('failed');
       }),
+      signInWithGoogle: vi.fn(async () => undefined),
     };
     TestBed.configureTestingModule({
       imports: [LoginComponent],
@@ -37,6 +38,7 @@ describe('LoginComponent', () => {
       loading: signal(false),
       error: signal<string | null>(null),
       signIn: vi.fn(async () => undefined),
+      signInWithGoogle: vi.fn(async () => undefined),
     };
     TestBed.configureTestingModule({
       imports: [LoginComponent],
@@ -48,5 +50,32 @@ describe('LoginComponent', () => {
     await fixture.componentInstance.submit(new Event('submit'));
 
     expect(fixture.componentInstance.password).toBe('');
+  });
+
+  it('calls signInWithGoogle and disables actions while loading', async () => {
+    const auth = {
+      loading: signal(false),
+      error: signal<string | null>(null),
+      signIn: vi.fn(async () => undefined),
+      signInWithGoogle: vi.fn(async () => {
+        auth.loading.set(true);
+      }),
+    };
+    TestBed.configureTestingModule({
+      imports: [LoginComponent],
+      providers: [{ provide: AuthService, useValue: auth }],
+    });
+    const fixture = TestBed.createComponent(LoginComponent);
+    fixture.detectChanges();
+
+    const googleButton = fixture.nativeElement.querySelector('.google-btn') as HTMLButtonElement;
+    expect(googleButton?.textContent).toContain('Iniciar sesión con Google');
+
+    await fixture.componentInstance.signInWithGoogle();
+    fixture.detectChanges();
+
+    expect(auth.signInWithGoogle).toHaveBeenCalled();
+    expect(googleButton.disabled).toBe(true);
+    expect(fixture.nativeElement.querySelector('button[type="submit"]').disabled).toBe(true);
   });
 });
