@@ -49,6 +49,7 @@
   background: var(--surface);
   color: var(--ink);
   border: 1px solid var(--line);
+  cursor: pointer;
 }
 .google-btn:hover:not(:disabled) {
   background: var(--bg);
