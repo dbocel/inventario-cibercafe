@@ -5,6 +5,7 @@ import {
   HostListener,
   inject,
   Injector,
+  OnDestroy,
   signal,
   ViewChild,
 } from '@angular/core';
@@ -16,9 +17,12 @@ import { InventoryComponent } from '../features/inventory/inventory.component';
 import { HistoryComponent } from '../features/history/history.component';
 import { MovementsComponent } from '../features/movements/movements.component';
 import { CybercafeComponent } from '../features/cybercafe/cybercafe.component';
+import { ModalDirective } from '../shared/modal.directive';
 
 const TABS = ['resumen', 'inventario', 'movimientos', 'cibercafe', 'historial'] as const;
 type Tab = (typeof TABS)[number];
+const IDLE_TIMEOUT_MS = 5 * 60 * 1000;
+const IDLE_COUNTDOWN_SECONDS = 15;
 
 @Component({
   selector: 'app-shell',
@@ -29,11 +33,12 @@ type Tab = (typeof TABS)[number];
     HistoryComponent,
     MovementsComponent,
     CybercafeComponent,
+    ModalDirective,
   ],
   templateUrl: './app-shell.component.html',
   styleUrl: './app-shell.component.css',
 })
-export class AppShellComponent {
+export class AppShellComponent implements OnDestroy {
   protected readonly auth = inject(AuthService);
   private readonly dataService = inject(InventoryDataService);
   private readonly injector = inject(Injector);
@@ -42,7 +47,13 @@ export class AppShellComponent {
   readonly dataError = signal('');
   readonly activeTab = signal<Tab>(this.readTab());
   readonly themeLabel = signal('Modo oscuro');
+  readonly idleModalOpen = signal(false);
+  readonly idleCountdown = signal(IDLE_COUNTDOWN_SECONDS);
   private loadRevision = 0;
+  private idleTimer: ReturnType<typeof setTimeout> | undefined;
+  private countdownTimer: ReturnType<typeof setInterval> | undefined;
+  private lastActivityAt = Date.now();
+  private readonly onUserActivity = (): void => this.handleUserActivity();
   readonly reloadData = () => this.loadData(true);
   @ViewChild(MovementsComponent) private movements?: MovementsComponent;
 
@@ -60,8 +71,10 @@ export class AppShellComponent {
       if (this.auth.currentUser()) {
         this.appData.set(null);
         void this.loadData();
+        this.startIdleTracking();
       } else {
         this.loadRevision++;
+        this.stopIdleTracking();
         const svc: any = this.dataService;
         if (typeof svc.clearCache === 'function') svc.clearCache();
         this.appData.set(null);
@@ -161,6 +174,107 @@ export class AppShellComponent {
   @HostListener('window:hashchange')
   onHashChange(): void {
     this.activeTab.set(this.readTab());
+  }
+
+  @HostListener('document:visibilitychange')
+  onVisibilityChange(): void {
+    if (document.visibilityState !== 'visible') return;
+    if (!this.auth.currentUser() || this.idleModalOpen()) return;
+    if (Date.now() - this.lastActivityAt >= IDLE_TIMEOUT_MS) this.openIdleModal();
+  }
+
+  ngOnDestroy(): void {
+    this.stopIdleTracking();
+  }
+
+  staySignedIn(): void {
+    this.idleModalOpen.set(false);
+    this.stopCountdown();
+    this.resetIdleTimer();
+  }
+
+  async logoutFromIdle(): Promise<void> {
+    this.idleModalOpen.set(false);
+    this.stopCountdown();
+    await this.logout();
+  }
+
+  private startIdleTracking(): void {
+    if (this.idleTimer) return;
+    this.lastActivityAt = Date.now();
+    const events: Array<keyof WindowEventMap> = [
+      'mousemove',
+      'mousedown',
+      'keydown',
+      'touchstart',
+      'scroll',
+      'click',
+    ];
+    events.forEach((event) => window.addEventListener(event, this.onUserActivity, { passive: true }));
+    this.resetIdleTimer();
+  }
+
+  private stopIdleTracking(): void {
+    if (this.idleTimer) {
+      clearTimeout(this.idleTimer);
+      this.idleTimer = undefined;
+    }
+    this.stopCountdown();
+    this.idleModalOpen.set(false);
+    const events: Array<keyof WindowEventMap> = [
+      'mousemove',
+      'mousedown',
+      'keydown',
+      'touchstart',
+      'scroll',
+      'click',
+    ];
+    events.forEach((event) => window.removeEventListener(event, this.onUserActivity));
+  }
+
+  private resetIdleTimer(): void {
+    if (this.idleTimer) clearTimeout(this.idleTimer);
+    if (!this.auth.currentUser() || this.idleModalOpen()) return;
+    this.idleTimer = setTimeout(() => this.openIdleModal(), IDLE_TIMEOUT_MS);
+  }
+
+  private handleUserActivity(): void {
+    if (!this.auth.currentUser() || this.idleModalOpen()) return;
+    const now = Date.now();
+    if (now - this.lastActivityAt < 2000) return;
+    this.lastActivityAt = now;
+    this.resetIdleTimer();
+  }
+
+  private openIdleModal(): void {
+    if (!this.auth.currentUser() || this.idleModalOpen()) return;
+    if (this.idleTimer) {
+      clearTimeout(this.idleTimer);
+      this.idleTimer = undefined;
+    }
+    this.idleCountdown.set(IDLE_COUNTDOWN_SECONDS);
+    this.idleModalOpen.set(true);
+    this.startCountdown();
+  }
+
+  private startCountdown(): void {
+    this.stopCountdown();
+    this.countdownTimer = setInterval(() => {
+      const next = this.idleCountdown() - 1;
+      this.idleCountdown.set(next);
+      if (next <= 0) {
+        this.stopCountdown();
+        this.idleModalOpen.set(false);
+        void this.logout();
+      }
+    }, 1000);
+  }
+
+  private stopCountdown(): void {
+    if (this.countdownTimer) {
+      clearInterval(this.countdownTimer);
+      this.countdownTimer = undefined;
+    }
   }
 
   private readTab(): Tab {

@@ -94,6 +94,27 @@ nav button[aria-selected='true'] {
   border: 1px dashed var(--line);
   border-radius: 8px;
 }
+.dialog::backdrop {
+  background: #0009;
+}
+.dialog {
+  width: min(440px, 92vw);
+  padding: 20px;
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
+}
+.dialog p {
+  color: var(--ink);
+  margin: 0 0 12px;
+}
+.dialog .buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 16px;
+}
 @media (max-width: 760px) {
   .wrap {
     padding: 16px 12px 32px;

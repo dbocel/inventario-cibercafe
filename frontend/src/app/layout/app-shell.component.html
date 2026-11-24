@@ -130,6 +130,26 @@
         }
       </div>
     </section>
+    @if (idleModalOpen()) {
+      <dialog
+        appModal
+        class="dialog"
+        aria-labelledby="idleTitle"
+        (dismissed)="staySignedIn()"
+      >
+        <h2 id="idleTitle">Sesión inactiva</h2>
+        <p>
+          Tu sesión se cerrará automáticamente por inactividad en
+          <strong>{{ idleCountdown() }}</strong> segundo(s).
+        </p>
+        <div class="buttons">
+          <button class="btn" type="button" (click)="logoutFromIdle()">Cerrar sesión</button>
+          <button class="btn primary" type="button" (click)="staySignedIn()">
+            Mantener sesión activa
+          </button>
+        </div>
+      </dialog>
+    }
   </div>
 } @else {
   <app-login />
