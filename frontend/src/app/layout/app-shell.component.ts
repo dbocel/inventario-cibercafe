@@ -164,9 +164,20 @@ export class AppShellComponent {
   }
 
   private readTab(): Tab {
-    const fragment = window.location.hash.slice(1);
+    const hash = window.location.hash;
+    const fragment = hash.slice(1);
+    if (
+      fragment.startsWith('access_token=') ||
+      fragment.startsWith('error=') ||
+      fragment.startsWith('error_description=') ||
+      fragment.includes('access_token=') ||
+      fragment.includes('refresh_token=') ||
+      fragment.includes('error_description=')
+    ) {
+      return 'resumen';
+    }
     const tab = TABS.find((candidate) => candidate === fragment) ?? 'resumen';
-    if (window.location.hash !== `#${tab}`) window.history.replaceState(null, '', `#${tab}`);
+    if (hash !== `#${tab}`) window.history.replaceState(null, '', `#${tab}`);
     return tab;
   }
 }
