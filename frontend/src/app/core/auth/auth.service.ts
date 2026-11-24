@@ -120,7 +120,7 @@ export class AuthService {
     this.error.set(null);
     try {
       const redirectTo = window.location.origin + window.location.pathname;
-      const { error } = await this.bounded(
+      const { data, error } = await this.bounded(
         this.supabase.client.auth.signInWithOAuth({
           provider: 'google',
           options: { redirectTo },
@@ -128,9 +128,14 @@ export class AuthService {
       );
       if (revision !== this.revision) return;
       if (error) throw error;
-      // El navegador redirige a Google; la sesión se restaurará al volver.
+      if (data?.url) {
+        window.location.assign(data.url);
+        return;
+      }
+      throw new Error('No se recibió la URL de autenticación de Google.');
     } catch (error) {
       if (revision !== this.revision) return;
+      console.error('Error al iniciar sesión con Google:', error);
       this.clearAuth();
       this.error.set('No se pudo iniciar sesión con Google. Intente nuevamente.');
       this.loading.set(false);
